@@ -1,0 +1,786 @@
+﻿/* Stripped: @font-face, html/body/#root, *,*:before,*:after — IRCrew owns the page chrome. */
+.ftl-scope {
+  font-family:'IRANSans','YekanBakh',Tahoma,Arial,sans-serif;
+  direction:rtl; text-align:right;
+  /* No `color` override here on purpose — leaving it lets Tailwind components
+     rendered INSIDE the FTL tab (period picker sheet, scan rows, etc.) inherit
+     IRCrew's body color and react to dark mode. Native FTL widgets like .card
+     and .field set their own dark text below where it actually matters. */
+}
+.ftl-scope, .ftl-scope *, .ftl-scope *:before, .ftl-scope *:after { box-sizing:border-box; }
+/* The FTL form controls always sit on white card backgrounds, so they need
+   explicit dark text regardless of the surrounding light/dark theme. */
+.ftl-scope .card,
+.ftl-scope .help,
+.ftl-scope .toolbar,
+.ftl-scope .field,
+.ftl-scope .field label,
+.ftl-scope .field input,
+.ftl-scope .field select,
+.ftl-scope .field textarea,
+.ftl-scope .tabs,
+.ftl-scope .tab { color:#0d1b2a; }
+/* Brand palette — aligned with IRCrew's emerald scale (index.css) instead of
+   the original navy. Status colors retained. */
+:root{
+  --ink:#0F172A; --ink-soft:#334155; --muted:#64748B;
+  --line:#E2E8F0; --paper:#fff; --bg:#F6FBF8;
+  --brand:#059669; --brand-2:#047857; --brand-3:#10B981;
+  --gold:#B8946B; --accent:#0d9488;
+  --pass:#059669; --fail:#dc2626; --warn:#d97706; --info:#0284c7;
+  --pass-bg:rgba(16,185,129,0.12); --fail-bg:rgba(239,68,68,0.10);
+  --warn-bg:rgba(245,158,11,0.12); --info-bg:rgba(56,189,248,0.12);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --ink:#E2E8F0; --ink-soft:#CBD5E1; --muted:#94A3B8;
+    --line:rgba(255,255,255,0.08); --paper:#111827; --bg:#0B1220;
+  }
+}
+.ftl-scope .num,.ftl-scope .en{font-family:'YekanBakhFaNum','IRANSans',Tahoma,sans-serif;direction:ltr;unicode-bidi:isolate}
+
+/* Layout — mobile-first, no fixed 1280px width since IRCrew already constrains
+   to max-w-screen-sm. */
+.ftl-scope.app{max-width:100%;margin:0;padding:0 0 24px}
+/* Hide the original navy "header" from ftl-checker — IRCrew already owns the page header. */
+.ftl-scope .header{display:none !important;}
+
+/* Sub-tab pills — match the look of IRCrew's bottom-nav indicator. */
+.ftl-scope .tabs{
+  display:flex; gap:4px;
+  background:transparent;
+  padding:4px; margin-bottom:14px;
+  border-radius:16px;
+  box-shadow:none;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.ftl-scope .tabs::-webkit-scrollbar{display:none}
+.ftl-scope .tab{
+  flex:1; min-width:0;
+  padding:9px 10px; border:none; background:transparent; border-radius:12px;
+  cursor:pointer; font-family:'IRANSans','YekanBakh',sans-serif; font-weight:800;
+  color:var(--ink-soft); font-size:12.5px; line-height:1.2;
+  transition:all .2s cubic-bezier(0.34,1.56,0.64,1);
+  white-space:nowrap;
+}
+.ftl-scope .tab:hover{background:rgba(16,185,129,0.10); color:var(--brand-2)}
+.ftl-scope .tab.active{
+  background:linear-gradient(135deg, #34d399 0%, #059669 60%, #065f46 100%);
+  color:#fff;
+  box-shadow:0 6px 18px -6px rgba(6,95,70,0.45);
+}
+.ftl-scope .tab .badge{
+  display:inline-block;background:#dc2626;color:#fff;border-radius:9999px;
+  min-width:18px;height:18px;line-height:18px;text-align:center;font-size:10px;
+  margin-right:5px;font-family:'YekanBakhFaNum';padding:0 5px;font-weight:800;
+}
+.ftl-scope .tab.active .num{color:#ecfdf5}
+
+/* Cards */
+.ftl-scope .card{
+  background:rgba(255,255,255,0.72);
+  backdrop-filter:blur(18px) saturate(160%);
+  -webkit-backdrop-filter:blur(18px) saturate(160%);
+  border-radius:20px; padding:16px 16px;
+  box-shadow:0 1px 0 rgba(255,255,255,0.7) inset,
+             0 12px 40px -16px rgba(2,44,34,0.18),
+             0 4px 12px -6px rgba(15,23,42,0.06);
+  margin-bottom:12px; border:1px solid rgba(255,255,255,0.5);
+  max-width:100%;overflow:hidden;
+}
+@media (prefers-color-scheme: dark){
+  .ftl-scope .card{
+    background:rgba(17,24,39,0.55);
+    border-color:rgba(255,255,255,0.08);
+    box-shadow:0 1px 0 rgba(255,255,255,0.06) inset,
+               0 18px 44px -16px rgba(0,0,0,0.6);
+  }
+}
+.ftl-scope .card h2{
+  margin:0 0 12px;font-family:'IRANSans','YekanBakh',sans-serif;font-weight:900;
+  color:var(--ink);font-size:15px;border-bottom:none;
+  padding-bottom:0;letter-spacing:-0.01em;
+}
+.ftl-scope .card h3{
+  margin:14px 0 6px;font-family:'IRANSans','YekanBakh',sans-serif;font-weight:800;
+  color:var(--brand-2);font-size:13px;
+}
+
+/* Form */
+.ftl-scope .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:10px}
+.ftl-scope .field{display:flex;flex-direction:column;gap:4px}
+.ftl-scope .field label{font-size:11.5px;color:var(--ink-soft);font-weight:700}
+.ftl-scope .field label .ref{
+  display:inline-block;background:rgba(16,185,129,0.12);color:var(--brand-2);
+  border:1px solid rgba(16,185,129,0.28);border-radius:6px;padding:0 6px;font-size:10px;
+  margin-right:6px;font-family:'YekanBakhFaNum'
+}
+.ftl-scope .field input,
+.ftl-scope .field select,
+.ftl-scope .field textarea{
+  padding:10px 12px;border:1px solid var(--line);border-radius:12px;
+  background:rgba(255,255,255,0.85);font-size:13px;width:100%;
+  font-family:'IRANSans',sans-serif;
+  transition:all .15s ease;
+}
+.ftl-scope .field input:focus,
+.ftl-scope .field select:focus,
+.ftl-scope .field textarea:focus{
+  outline:none;border-color:var(--brand);background:#fff;
+  box-shadow:0 0 0 3px rgba(16,185,129,0.18);
+}
+.ftl-scope .field input[type=checkbox]{width:auto;margin-left:6px;border-radius:4px}
+.ftl-scope .field.inline{flex-direction:row;align-items:center;gap:8px}
+.ftl-scope .field.inline label{margin:0}
+
+.ftl-scope .btn{
+  padding:11px 18px;border-radius:14px;border:none;cursor:pointer;
+  font-family:'IRANSans','YekanBakh',sans-serif;font-weight:800;font-size:13px;
+  transition:all .2s cubic-bezier(0.34,1.56,0.64,1);
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+}
+.ftl-scope .btn:active{transform:scale(0.98)}
+.ftl-scope .btn:disabled{opacity:0.5;cursor:not-allowed}
+.ftl-scope .btn-primary{
+  background:linear-gradient(135deg, #10b981 0%, #059669 60%, #065f46 100%);
+  color:#fff;
+  box-shadow:0 8px 22px -8px rgba(6,95,70,0.45), 0 1px 0 rgba(255,255,255,0.2) inset;
+}
+.ftl-scope .btn-primary:hover{filter:brightness(1.05)}
+.ftl-scope .btn-secondary{
+  background:rgba(255,255,255,0.85);color:var(--brand-2);
+  border:1px solid rgba(16,185,129,0.30);
+}
+.ftl-scope .btn-secondary:hover{background:rgba(16,185,129,0.08)}
+.btn-danger{background:var(--fail);color:#fff}
+.btn-danger:hover{background:#a82920}
+.btn-ghost{background:transparent;color:var(--ink-soft);padding:6px 10px}
+
+/* History table — readable in light AND dark mode. The table now sits inside
+   a rounded surface card, with explicit cell colors (no inheritance) and
+   striped rows to give contrast independent of the page chrome. */
+.ftl-scope table.entries{
+  width:100%;border-collapse:separate;border-spacing:0;font-size:12px;
+  background:rgba(255,255,255,0.96);
+  border-radius:14px;overflow:hidden;
+  border:1px solid var(--line);
+}
+.ftl-scope table.entries th,
+.ftl-scope table.entries td{
+  padding:10px 10px;border-bottom:1px solid var(--line);text-align:right;
+  color:#0F172A;
+  vertical-align:middle;
+}
+.ftl-scope table.entries th{
+  background:rgba(16,185,129,0.12);
+  color:#065f46;
+  font-family:'IRANSans','YekanBakh',sans-serif;font-weight:900;
+  font-size:11.5px;
+  letter-spacing:0.01em;
+  border-bottom:1px solid rgba(16,185,129,0.30);
+  position:sticky; top:0;
+}
+.ftl-scope table.entries tbody tr:nth-child(even) td{
+  background:rgba(248,250,252,0.85);
+}
+.ftl-scope table.entries tbody tr:hover td{background:rgba(16,185,129,0.10)}
+.ftl-scope table.entries tbody tr:last-child td{border-bottom:none}
+.ftl-scope table.entries td.num,
+.ftl-scope table.entries th.num{font-family:'YekanBakhFaNum',sans-serif;direction:ltr;text-align:center}
+
+@media (prefers-color-scheme: dark){
+  .ftl-scope table.entries{
+    background:rgba(17,24,39,0.65);
+    border-color:rgba(255,255,255,0.10);
+  }
+  .ftl-scope table.entries th,
+  .ftl-scope table.entries td{
+    color:#E2E8F0;
+    border-bottom-color:rgba(255,255,255,0.08);
+  }
+  .ftl-scope table.entries th{
+    background:rgba(16,185,129,0.22);
+    color:#a7f3d0;
+    border-bottom-color:rgba(16,185,129,0.45);
+  }
+  .ftl-scope table.entries tbody tr:nth-child(even) td{
+    background:rgba(255,255,255,0.04);
+  }
+  .ftl-scope table.entries tbody tr:hover td{background:rgba(16,185,129,0.18)}
+}
+
+/* Kind badges — same colors light & dark, since they're self-contained pills. */
+.ftl-scope .kind-badge{
+  display:inline-block;padding:3px 10px;border-radius:9999px;
+  font-size:11px;font-family:'IRANSans','YekanBakh',sans-serif;font-weight:800;
+  white-space:nowrap;
+}
+.ftl-scope .kind-fdp        {background:rgba(16,185,129,0.18); color:#065f46}
+.ftl-scope .kind-positioning{background:rgba(245,158,11,0.18); color:#7a4f10}
+.ftl-scope .kind-training   {background:rgba(99,102,241,0.18); color:#3730a3}
+.ftl-scope .kind-sba,
+.ftl-scope .kind-sbb,
+.ftl-scope .kind-sbf        {background:rgba(245,158,11,0.18); color:#92400e}
+.ftl-scope .kind-airport_sb {background:rgba(239,68,68,0.16);  color:#991b1b}
+.ftl-scope .kind-reserve    {background:rgba(139,92,246,0.18); color:#5b21b6}
+.ftl-scope .kind-day_off,
+.ftl-scope .kind-recovery   {background:rgba(180,83,9,0.18);   color:#7c2d12}
+.ftl-scope .kind-rest,
+.ftl-scope .kind-admin      {background:rgba(100,116,139,0.20);color:#334155}
+
+@media (prefers-color-scheme: dark){
+  .ftl-scope .kind-fdp        {background:rgba(16,185,129,0.28); color:#a7f3d0}
+  .ftl-scope .kind-positioning{background:rgba(245,158,11,0.28); color:#fde68a}
+  .ftl-scope .kind-training   {background:rgba(99,102,241,0.28); color:#c7d2fe}
+  .ftl-scope .kind-sba,
+  .ftl-scope .kind-sbb,
+  .ftl-scope .kind-sbf        {background:rgba(245,158,11,0.28); color:#fde68a}
+  .ftl-scope .kind-airport_sb {background:rgba(239,68,68,0.26);  color:#fecaca}
+  .ftl-scope .kind-reserve    {background:rgba(139,92,246,0.28); color:#ddd6fe}
+  .ftl-scope .kind-day_off,
+  .ftl-scope .kind-recovery   {background:rgba(180,83,9,0.30);   color:#fdba74}
+  .ftl-scope .kind-rest,
+  .ftl-scope .kind-admin      {background:rgba(100,116,139,0.30);color:#cbd5e1}
+}
+
+/* Results */
+.ftl-scope .fdp-result{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 20px;border-radius:20px;margin-bottom:14px;
+  font-family:'IRANSans','YekanBakh',sans-serif;font-weight:900;
+  box-shadow:0 12px 30px -10px rgba(0,0,0,0.25);
+}
+.ftl-scope .fdp-result.go  {background:linear-gradient(135deg,#10b981 0%,#059669 60%,#065f46 100%);color:#fff}
+.ftl-scope .fdp-result.no-go{background:linear-gradient(135deg,#ef4444 0%,#dc2626 60%,#991b1b 100%);color:#fff}
+.ftl-scope .fdp-result.warn{background:linear-gradient(135deg,#f59e0b 0%,#d97706 60%,#92400e 100%);color:#fff}
+.fdp-result .lbl{font-size:13pt}
+.fdp-result .val{font-family:'YekanBakhFaNum';font-size:32pt;line-height:1;direction:ltr}
+.fdp-result .small{font-size:9pt;opacity:.85;margin-top:4px;font-weight:400}
+
+.check{
+  border-right:4px solid var(--info);background:var(--info-bg);
+  padding:10px 14px;border-radius:8px;margin-bottom:8px;
+}
+.check.pass{border-color:var(--pass);background:var(--pass-bg)}
+.check.fail{border-color:var(--fail);background:var(--fail-bg)}
+.check.warn{border-color:var(--warn);background:var(--warn-bg)}
+.check .header{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.check .icon{
+  width:22px;height:22px;border-radius:50%;display:flex;
+  align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11pt;
+}
+.check.pass .icon{background:var(--pass)}
+.check.fail .icon{background:var(--fail)}
+.check.warn .icon{background:var(--warn)}
+.check.info .icon{background:var(--info)}
+.check .title-row{flex:1;display:flex;align-items:center;gap:10px}
+.check .title{font-weight:700;color:var(--ink)}
+.check .ref{
+  background:#fff;color:var(--brand);border:1px solid var(--line);
+  border-radius:4px;padding:1px 6px;font-size:9pt;font-family:'YekanBakhFaNum';
+}
+.check .msg{font-size:10.5pt;color:var(--ink-soft);margin-top:2px}
+.check .vals{font-size:9.5pt;color:var(--muted);margin-top:3px;font-family:'YekanBakhFaNum';direction:ltr;text-align:left}
+
+.summary-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:10px;margin-bottom:14px;
+}
+.stat{
+  background:#fff;border:1px solid var(--line);border-radius:10px;
+  padding:12px 14px;
+}
+.stat .lbl{font-size:9.5pt;color:var(--muted);margin-bottom:3px}
+.stat .val{font-family:'YekanBakhFaNum';font-weight:800;font-size:18pt;color:var(--brand);direction:ltr}
+.stat .sub{font-size:9pt;color:var(--ink-soft);margin-top:2px}
+.stat.pass .val{color:var(--pass)}
+.stat.fail .val{color:var(--fail)}
+.stat.warn .val{color:var(--warn)}
+
+/* Misc */
+.ftl-scope .help{
+  background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.22);border-radius:12px;
+  padding:10px 12px;font-size:11.5px;color:var(--ink-soft);margin-bottom:10px;line-height:1.7;
+}
+.ftl-scope .help b{color:var(--brand-2)}
+.ftl-scope .empty{padding:20px;text-align:center;color:var(--muted);font-style:italic;font-size:12px}
+.ftl-scope hr{border:0;border-top:1px solid var(--line);margin:14px 0}
+.ftl-scope .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;margin-top:6px}
+
+.split{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:900px){.split{grid-template-columns:1fr}}
+
+/* â”€â”€â”€ Tooltip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.tt-wrap{position:relative;display:inline-block;margin-right:6px;vertical-align:middle}
+.tt-trigger{
+  width:18px;height:18px;border-radius:50%;
+  background:var(--brand-2);color:#fff;border:none;cursor:help;
+  font-family:'YekanBakhFaNum',sans-serif;font-weight:700;font-size:11px;line-height:1;
+  display:inline-flex;align-items:center;justify-content:center;padding:0;
+  transition:background .15s ease;
+}
+.tt-trigger:hover,.tt-trigger:focus{background:var(--brand);outline:none}
+.tt-bubble{
+  position:absolute;z-index:200;
+  bottom:calc(100% + 6px);right:-6px;
+  width:300px;max-width:calc(100vw - 32px);
+  background:#fff;border:1px solid var(--brand);
+  border-radius:10px;
+  box-shadow:0 6px 20px rgba(13,27,42,.18);
+  padding:10px 12px;
+  font-size:10.5pt;line-height:1.7;color:var(--ink-soft);
+  text-align:right;
+  pointer-events:auto;
+}
+.tt-bubble::before{
+  content:"";position:absolute;
+  top:100%;right:14px;
+  border:7px solid transparent;border-top-color:var(--brand);
+}
+.tt-bubble::after{
+  content:"";position:absolute;
+  top:100%;right:15px;
+  border:6px solid transparent;border-top-color:#fff;
+  margin-top:-2px;
+}
+.tt-title{
+  display:block;font-family:'YekanBakh';font-weight:700;
+  color:var(--brand);margin-bottom:4px;font-size:11pt;
+  border-bottom:1px solid var(--line);padding-bottom:4px;
+}
+.tt-.tt-body b{color:var(--brand)}
+.tt-body code{
+  background:#eef3fa;color:var(--brand);
+  padding:0 5px;border-radius:3px;font-family:'YekanBakhFaNum',monospace;font-size:9.5pt;direction:ltr;
+  display:inline-block;
+}
+
+/* â”€â”€â”€ Persian date+time wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.pdt-wrap{display:flex;gap:5px;align-items:stretch;flex-wrap:wrap}
+.pdt-part,.pdt-time{
+  padding:8px 8px;border:1px solid var(--line);border-radius:6px;
+  background:#fff;font-size:11pt;
+  font-family:'YekanBakhFaNum','IRANSans',sans-serif;
+  text-align:center;
+}
+.pdt-part{flex:1;min-width:60px}
+.pdt-month{flex:1.6}
+.pdt-time{flex:0 0 auto;width:96px;direction:ltr}
+.pdt-part:focus,.pdt-time:focus{
+  outline:none;border-color:var(--brand-2);
+  box-shadow:0 0 0 3px rgba(21,99,154,.1);
+}
+
+/* â”€â”€â”€ Persian date picker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.rmdp-input-fa{
+  padding:8px 10px !important;
+  border:1px solid var(--line) !important;border-radius:6px !important;
+  background:#fff !important;
+  font-size:11pt !important;font-family:'YekanBakhFaNum','IRANSans',sans-serif !important;
+  width:100% !important;direction:ltr !important;text-align:right !important;
+  height:auto !important;
+}
+.rmdp-input-fa:focus{
+  outline:none !important;border-color:var(--brand-2) !important;
+  box-shadow:0 0 0 3px rgba(21,99,154,.1) !important;
+}
+.rmdp-wrapper{font-family:'YekanBakh','IRANSans',sans-serif !important;direction:rtl}
+.rmdp-day-picker,.rmdp-time-picker{font-family:'YekanBakhFaNum','IRANSans',sans-serif !important}
+.rmdp-week-day{color:var(--brand) !important;font-family:'YekanBakh' !important;font-weight:700}
+.rmdp-day.rmdp-selected span:not(.highlight){
+  background:var(--brand) !important;color:#fff !important;box-shadow:none !important;
+}
+.rmdp-day:not(.rmdp-disabled,.rmdp-day-hidden) span:hover{background:var(--brand-2) !important;color:#fff !important}
+.rmdp-arrow-container:hover{background:var(--brand) !important}
+.rmdp-arrow{border-color:var(--brand) !important}
+.rmdp-arrow-container:hover .rmdp-arrow{border-color:#fff !important}
+.rmdp-today span{color:var(--gold) !important;font-weight:700}
+
+/* â”€â”€â”€ Detailed analysis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.analysis-block{
+  background:#fff;border:1px solid var(--fail);border-right:5px solid var(--fail);
+  border-radius:10px;padding:14px 18px;margin-bottom:12px;
+  max-width:100%;overflow:hidden;
+}
+.analysis-block.warn{border-color:var(--warn);border-right-color:var(--warn)}
+.analysis-block .a-head{
+  display:flex;align-items:center;gap:10px;margin-bottom:8px;
+}
+.analysis-block .a-head .num{
+  background:var(--fail);color:#fff;width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13pt;
+  font-family:'YekanBakhFaNum';
+}
+.analysis-block.warn .a-head .num{background:var(--warn)}
+.analysis-block .a-title{font-family:'YekanBakh';font-weight:800;color:var(--ink);font-size:13pt;flex:1}
+.analysis-block .a-ref{
+  background:var(--brand);color:#fff;border-radius:4px;
+  padding:2px 8px;font-size:9pt;font-family:'YekanBakhFaNum';
+}
+.analysis-block .a-section{
+  margin:8px 0;padding:8px 12px;
+  background:#fafcff;border-radius:6px;border-right:3px solid var(--brand-3);
+}
+.analysis-block .a-section h4{
+  margin:0 0 4px;font-family:'YekanBakh';font-weight:700;
+  color:var(--brand);font-size:11pt;
+}
+.analysis-block .a-section p{margin:0;font-size:10.5pt;color:var(--ink-soft);line-height:1.8}
+.analysis-block .a-section.rule{border-right-color:var(--info)}
+.analysis-block .a-section.violation{border-right-color:var(--fail);background:#fff5f4}
+.analysis-block .a-section.remedy{border-right-color:var(--pass);background:#f0f9f3}
+.analysis-block .a-section.calc{
+  border-right-color:var(--brand-2);background:#eef6ff;padding:8px 8px;
+  overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;
+}
+
+/* Calculation table â€” internal scroll, never overflows page */
+table.calc-table{
+  width:100%;border-collapse:collapse;font-size:9.5pt;
+  background:#fff;border-radius:6px;overflow:hidden;
+  margin-top:4px;
+  min-width:520px;  /* keep columns readable; parent scrolls when narrower */
+}
+table.calc-table th,table.calc-table td{
+  padding:5px 8px;border-bottom:1px solid #e3ecf6;text-align:right;
+  vertical-align:middle;
+}
+table.calc-table thead th{
+  background:var(--brand);color:#fff;
+  font-family:'YekanBakh',sans-serif;font-weight:700;font-size:9pt;
+  white-space:nowrap;
+}
+table.calc-table .num{
+  font-family:'YekanBakhFaNum',sans-serif;direction:ltr;text-align:center;
+  width:28px;color:var(--muted);
+}
+table.calc-table .label{font-family:'YekanBakh';font-weight:600;color:var(--ink);min-width:120px}
+table.calc-table .formula{
+  font-family:'YekanBakhFaNum','IRANSans',monospace;direction:ltr;
+  color:var(--ink-soft);font-size:9pt;text-align:left;
+}
+table.calc-table .value{
+  font-family:'YekanBakhFaNum',sans-serif;direction:ltr;
+  font-weight:700;color:var(--brand);text-align:center;white-space:nowrap;
+}
+table.calc-table .ref{
+  font-family:'YekanBakhFaNum',sans-serif;direction:ltr;
+  font-size:8.5pt;color:var(--muted);text-align:left;
+}
+table.calc-table tr.final{background:#fff8e6;border-top:2px solid var(--gold)}
+table.calc-table tr.final .value{color:var(--gold);font-size:10.5pt}
+
+details.calc-details{
+  margin-top:6px;background:#fafcff;border:1px solid var(--line);
+  border-radius:6px;padding:6px 10px;
+  overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;
+}
+details.calc-details summary{
+  cursor:pointer;font-family:'YekanBakh';font-weight:700;
+  color:var(--brand);font-size:10pt;list-style:none;
+}
+details.calc-details summary::-webkit-details-marker{display:none}
+details.calc-details[open] summary{margin-bottom:6px}
+.analysis-block .a-vals{
+  display:inline-block;background:#fff;
+  padding:2px 8px;border-radius:4px;
+  font-family:'YekanBakhFaNum';direction:ltr;
+  border:1px solid var(--line);font-size:10pt;
+}
+
+/* â”€â”€â”€ Commander's Discretion result strip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.cmd-discretion{
+  background:linear-gradient(135deg,#7a4f10,#b08827);
+  color:#fff;border-radius:10px;padding:14px 18px;margin-bottom:14px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+.cmd-discretion .lbl{font-family:'YekanBakh';font-weight:700;font-size:12pt}
+.cmd-discretion .val{font-family:'YekanBakhFaNum';font-size:22pt;font-weight:800;direction:ltr}
+.cmd-discretion .small{font-size:9pt;opacity:.9;font-weight:400;margin-top:3px}
+
+/* â”€â”€â”€ Delay strip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.delay-strip{
+  background:#fff4e0;border:1px solid var(--warn);border-radius:8px;
+  padding:10px 14px;margin:8px 0;
+}
+.delay-strip .h{font-family:'YekanBakh';font-weight:700;color:var(--warn);margin-bottom:4px;font-size:11pt}
+.delay-strip .v{font-size:10.5pt;color:var(--ink-soft)}
+
+/* â”€â”€â”€ Candidate Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.ftl-scope .cand-bar{
+  background:rgba(255,255,255,0.72);
+  backdrop-filter:blur(18px) saturate(160%);
+  -webkit-backdrop-filter:blur(18px) saturate(160%);
+  border:1px solid rgba(255,255,255,0.5);border-radius:20px;
+  padding:14px 14px;margin-bottom:12px;
+  box-shadow:0 1px 0 rgba(255,255,255,0.7) inset,
+             0 12px 40px -16px rgba(2,44,34,0.18),
+             0 4px 12px -6px rgba(15,23,42,0.06);
+}
+@media (prefers-color-scheme: dark){
+  .ftl-scope .cand-bar{
+    background:rgba(17,24,39,0.55);
+    border-color:rgba(255,255,255,0.08);
+  }
+}
+.ftl-scope .cand-bar-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;gap:8px;
+}
+.ftl-scope .cand-bar-title{
+  font-family:'IRANSans','YekanBakh',sans-serif;font-weight:900;color:var(--ink);font-size:14px;
+}
+.ftl-scope .cand-pills{
+  display:grid;grid-template-columns:1fr;gap:8px;
+}
+@media (min-width:520px){.ftl-scope .cand-pills{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}}
+.ftl-scope .cand-pill{
+  border:1px solid var(--line);border-radius:14px;padding:10px 12px;
+  background:rgba(248,250,252,0.6);cursor:pointer;
+  transition:all .2s cubic-bezier(0.34,1.56,0.64,1);
+  position:relative;
+}
+.ftl-scope .cand-pill:hover{background:rgba(16,185,129,0.08);border-color:rgba(16,185,129,0.30)}
+.ftl-scope .cand-pill.active{
+  border-color:rgba(16,185,129,0.55);
+  background:linear-gradient(135deg, rgba(16,185,129,0.14), rgba(16,185,129,0.06));
+  box-shadow:0 6px 18px -8px rgba(6,95,70,0.30);
+}
+.ftl-scope .cand-pill.go{border-right:5px solid var(--pass)}
+.ftl-scope .cand-pill.warn{border-right:5px solid var(--warn)}
+.ftl-scope .cand-pill.no-go{border-right:5px solid var(--fail)}
+.ftl-scope .cand-row{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.ftl-scope .cand-num{
+  background:linear-gradient(135deg, #34d399, #059669);color:#fff;border-radius:9999px;
+  width:24px;height:24px;display:flex;align-items:center;justify-content:center;
+  font-family:'YekanBakhFaNum';font-weight:800;font-size:11px;flex:0 0 auto;
+  box-shadow:0 2px 6px rgba(6,95,70,0.25);
+}
+.ftl-scope .cand-label{
+  flex:1;font-family:'IRANSans','YekanBakh',sans-serif;font-weight:800;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.cand-verdict{
+  width:22px;height:22px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:800;font-size:11pt;flex:0 0 auto;
+}
+.v-go{background:var(--pass)}
+.v-warn{background:var(--warn)}
+.v-no-go{background:var(--fail)}
+.cand-meta{
+  display:flex;justify-content:space-between;
+  font-size:9.5pt;color:var(--muted);margin-top:4px;
+  font-family:'YekanBakhFaNum',sans-serif;
+}
+.cand-fdp{color:var(--brand);font-weight:600}
+.cand-actions{
+  position:absolute;top:6px;left:6px;
+  display:flex;gap:2px;
+}
+.cand-btn{
+  width:22px;height:22px;border-radius:5px;border:1px solid var(--line);
+  background:#fff;cursor:pointer;font-size:10pt;line-height:1;padding:0;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--ink-soft);transition:all .15s ease;
+}
+.cand-btn:hover{background:#eef3fa;color:var(--brand)}
+.cand-del:hover{background:#fce8e6;color:var(--fail);border-color:var(--fail)}
+
+/* â”€â”€â”€ Comparison Cards (Results) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.compare-grid{
+  background:#fff;border:1px solid var(--line);border-radius:12px;
+  padding:14px 16px;margin-bottom:14px;
+  box-shadow:0 2px 10px rgba(13,27,42,.06);
+}
+.compare-title{
+  margin:0 0 10px;font-family:'YekanBakh';font-weight:800;color:var(--brand);
+  font-size:13pt;border-bottom:2px solid var(--brand);padding-bottom:5px;
+}
+.compare-cards{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:10px;
+}
+.cmp-card{
+  background:#fcfdff;border:1px solid var(--line);border-radius:10px;
+  padding:12px 14px;border-right:5px solid var(--line);
+  transition:all .15s ease;
+}
+.cmp-card.go{border-right-color:var(--pass);background:#f3faf5}
+.cmp-card.warn{border-right-color:var(--warn);background:#fffbf0}
+.cmp-card.no-go{border-right-color:var(--fail);background:#fff5f4}
+.cmp-card.active{box-shadow:0 0 0 2px var(--brand)}
+.cmp-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.cmp-num{
+  background:var(--brand);color:#fff;border-radius:50%;
+  width:24px;height:24px;display:flex;align-items:center;justify-content:center;
+  font-family:'YekanBakhFaNum';font-weight:700;font-size:10.5pt;flex:0 0 auto;
+}
+.cmp-label{
+  flex:1;font-family:'YekanBakh';font-weight:700;color:var(--ink);font-size:11pt;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.verdict-badge{
+  display:inline-block;padding:2px 8px;border-radius:11px;
+  font-family:'YekanBakh';font-weight:700;font-size:9.5pt;flex:0 0 auto;
+}
+.verdict-badge.go{background:var(--pass);color:#fff}
+.verdict-badge.warn{background:var(--warn);color:#fff}
+.verdict-badge.no-go{background:var(--fail);color:#fff}
+.cmp-date{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:10pt;color:var(--ink-soft);margin-bottom:8px;
+  padding-bottom:8px;border-bottom:1px dashed var(--line);
+}
+.cmp-l{color:var(--muted);font-size:9.5pt;font-family:'YekanBakh';font-weight:600}
+.cmp-stats{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:6px;
+}
+.cmp-stat{
+  background:rgba(255,255,255,.7);border:1px solid var(--line);border-radius:6px;
+  padding:6px 4px;text-align:center;
+}
+.cmp-stat .l{display:block;font-size:8.5pt;color:var(--muted);margin-bottom:2px}
+.cmp-stat .v{
+  display:block;font-family:'YekanBakhFaNum';font-weight:700;
+  color:var(--brand);font-size:11.5pt;direction:ltr;
+}
+.cmp-stat .v.over{color:var(--fail)}
+.cmp-stat .v.under{color:var(--pass)}
+.cmp-issues{
+  margin-top:8px;font-size:9.5pt;color:var(--ink-soft);
+  background:rgba(0,0,0,.04);border-radius:6px;padding:6px 10px;
+}
+.cmp-issues ul{margin:4px 0 0;padding-right:1.2em}
+.cmp-issues li{margin:2px 0;font-size:9.5pt}
+
+/* â”€â”€â”€ Over-Duty strip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.overduty-strip{
+  border-radius:10px;padding:14px 18px;margin-bottom:14px;
+}
+.overduty-strip.safe{background:#f0f9f3;border:1px solid var(--pass);color:#0a4f3a}
+.overduty-strip.cmd{background:#fff8e6;border:1px solid var(--warn);color:#7a5a10}
+.overduty-strip.danger{background:#fce8e6;border:1px solid var(--fail);color:#7a1a14}
+.overduty-strip .h{
+  font-family:'YekanBakh';font-weight:800;font-size:12pt;margin-bottom:5px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.overduty-strip .v{font-size:10.5pt;line-height:1.7}
+.overduty-strip .grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;
+}
+.overduty-strip .cell{
+  background:rgba(255,255,255,.6);border-radius:6px;padding:6px 10px;
+  text-align:center;
+}
+.overduty-strip .cell .l{font-size:9pt;color:var(--muted);margin-bottom:2px}
+.overduty-strip .cell .v{
+  font-family:'YekanBakhFaNum';font-weight:700;font-size:14pt;direction:ltr;
+}
+
+/* â”€â”€â”€ Mobile responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+@media (max-width: 768px) {
+  .app{padding:12px 10px 32px}
+  .header{
+    padding:14px 16px;flex-wrap:wrap;gap:10px;
+    border-radius:10px;
+  }
+  .header .crest{width:42px;height:42px;font-size:16pt}
+  .header .brand-logo{width:46px;height:46px}
+  .header h1{font-size:14pt}
+  .header .sub{font-size:9.5pt}
+  .header .right{width:100%;text-align:right;font-size:9.5pt;border-top:1px solid rgba(255,255,255,.18);padding-top:8px;margin:0}
+
+  /* Tabs scroll horizontally on mobile */
+  .tabs{overflow-x:auto;flex-wrap:nowrap;padding:4px;border-radius:10px;-webkit-overflow-scrolling:touch}
+  .tab{min-width:auto;flex:0 0 auto;padding:8px 12px;font-size:10.5pt;white-space:nowrap}
+
+  .card{padding:14px 14px;border-radius:10px}
+  .card h2{font-size:12.5pt;margin-bottom:10px}
+  .card h3{font-size:11pt}
+
+  /* Form rows always stack to single column on small screens */
+  .row{grid-template-columns:1fr !important;gap:10px}
+  .field input,.field select,.field textarea{font-size:11pt;padding:9px 10px}
+  .field label{font-size:10pt}
+
+  /* Tooltip: full width minus margin, anchored to right edge */
+  .tt-bubble{
+    width:calc(100vw - 40px);max-width:340px;
+    right:-12px;font-size:10pt;
+  }
+
+  /* FDP result strip stacks */
+  .fdp-result,.cmd-discretion{
+    flex-direction:column;align-items:stretch;text-align:center;gap:8px;
+    padding:14px 16px;
+  }
+  .fdp-result > div,.cmd-discretion > div{text-align:center !important}
+  .fdp-result .val{font-size:26pt}
+  .cmd-discretion .val{font-size:20pt}
+  .fdp-result .lbl,.cmd-discretion .lbl{font-size:11.5pt}
+
+  /* Summary stats grid: 2-column on mobile */
+  .summary-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .stat{padding:10px 12px}
+  .stat .val{font-size:16pt}
+
+  /* History table: horizontal scroll */
+  .card > table.entries{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table.entries th,table.entries td{padding:6px 7px;font-size:9.5pt;white-space:nowrap}
+
+  /* Modal editor takes most of screen */
+  .card[style*="position: fixed"]{padding:14px}
+
+  /* Toolbar buttons stack */
+  .toolbar{flex-direction:column;align-items:stretch}
+  .btn{width:100%;padding:10px 14px}
+  .toolbar .btn{width:auto;flex:1}
+
+  /* Date picker time input narrower */
+  .pdt-time{width:78px;padding:7px 6px;font-size:10.5pt}
+  .pdt-part{padding:7px 6px;font-size:10.5pt}
+
+  /* Candidate bar mobile */
+  .cand-pills{grid-template-columns:1fr}
+  .cand-bar-head{flex-direction:column;align-items:stretch;gap:8px}
+  .cand-bar-head .btn{width:100%}
+
+  /* Compare grid mobile â€” single column, no horizontal scroll */
+  .compare-grid{padding:12px 12px}
+  .compare-cards{grid-template-columns:1fr;gap:8px}
+  .cmp-card{padding:10px 12px}
+  .cmp-stats{gap:5px}
+  .cmp-stat{padding:5px 3px}
+  .cmp-stat .v{font-size:10.5pt}
+  .cmp-stat .l{font-size:8pt}
+  .cmp-label{font-size:10.5pt}
+
+  /* Over-duty strip mobile */
+  .overduty-strip{padding:12px 14px}
+  .overduty-strip .grid{grid-template-columns:1fr;gap:6px}
+  .overduty-strip .cell .v{font-size:13pt}
+
+  /* Analysis blocks padding */
+  .analysis-block{padding:12px 14px}
+  .analysis-block .a-title{font-size:11.5pt}
+  .analysis-block .a-section h4{font-size:10pt}
+  .analysis-block .a-section p{font-size:10pt}
+  .analysis-block .a-head .num{width:24px;height:24px;font-size:11pt}
+
+  /* Make rmdp portal modal centered on small screens */
+  .rmdp-container{width:100%}
+  .rmdp-input-fa{font-size:11pt !important;padding:9px 10px !important}
+}
+
+@media (max-width: 480px) {
+  .summary-grid{grid-template-columns:1fr 1fr}
+  .header h1{font-size:13pt}
+  .header .sub{font-size:9pt}
+  .fdp-result .val{font-size:22pt}
+  .cmd-discretion .val{font-size:18pt}
+  .tt-bubble{width:calc(100vw - 30px);right:-10px}
+}
+

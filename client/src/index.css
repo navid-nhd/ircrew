@@ -1,0 +1,316 @@
+@import "tailwindcss";
+
+/* IranSans — primary body font (highly legible at small sizes for Persian UI) */
+@font-face { font-family: "IRANSans"; src: url("/fonts/IRANSansWeb_UltraLight.woff2") format("woff2"); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: "IRANSans"; src: url("/fonts/IRANSansWeb_Light.woff2") format("woff2");      font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: "IRANSans"; src: url("/fonts/IRANSansWeb.woff2") format("woff2");            font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "IRANSans"; src: url("/fonts/IRANSansWeb_Medium.woff2") format("woff2");     font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "IRANSans"; src: url("/fonts/IRANSansWeb_Bold.woff2") format("woff2");       font-weight: 700; font-style: normal; font-display: swap; }
+/* IranSans only has 5 weights — alias 600/800/900 to Bold so font-bold/extrabold/black render Bold instead of fake-synth */
+@font-face { font-family: "IRANSans"; src: url("/fonts/IRANSansWeb_Bold.woff2") format("woff2");       font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "IRANSans"; src: url("/fonts/IRANSansWeb_Bold.woff2") format("woff2");       font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: "IRANSans"; src: url("/fonts/IRANSansWeb_Bold.woff2") format("woff2");       font-weight: 900; font-style: normal; font-display: swap; }
+
+/* YekanBakh — accent for big numbers / headings if we want display flair */
+@font-face { font-family: "YekanBakh"; src: url("/fonts/YekanBakh_Regular.woff2") format("woff2");   font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "YekanBakh"; src: url("/fonts/YekanBakh_Bold.woff2") format("woff2");      font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "YekanBakh"; src: url("/fonts/YekanBakh_Black.woff2") format("woff2");     font-weight: 900; font-style: normal; font-display: swap; }
+
+/* YekanBakhFaNum — Persian numerals used by the FTL Checker tab's .num/.en spans */
+@font-face { font-family: "YekanBakhFaNum"; src: url("/fonts/YekanBakhFaNum_Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "YekanBakhFaNum"; src: url("/fonts/YekanBakhFaNum_Bold.woff2") format("woff2");    font-weight: 700; font-style: normal; font-display: swap; }
+
+@theme {
+  --font-sans: "IRANSans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "YekanBakh", "IRANSans", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50:  #ecfdf5;
+  --color-brand-100: #d1fae5;
+  --color-brand-200: #a7f3d0;
+  --color-brand-300: #6ee7b7;
+  --color-brand-400: #34d399;
+  --color-brand-500: #10b981;
+  --color-brand-600: #059669;
+  --color-brand-700: #047857;
+  --color-brand-800: #065f46;
+  --color-brand-900: #064e3b;
+  --color-brand-950: #022c22;
+
+  --color-gold-500: #B8946B;
+  --color-gold-600: #9C7B57;
+}
+
+html, body, #root { height: 100%; }
+html { -webkit-text-size-adjust: 100%; font-size: 16px; }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.65;
+  background:
+    radial-gradient(1100px circle at 0% 0%,    rgba(16,185,129,0.10), transparent 50%),
+    radial-gradient(1100px circle at 100% 0%,  rgba(168,85,247,0.08),  transparent 50%),
+    radial-gradient(900px circle at 50% 100%,  rgba(245,158,11,0.08),  transparent 55%),
+    linear-gradient(180deg, #F6FBF8 0%, #EBF3EF 100%);
+  background-attachment: fixed;
+  color: #0F172A;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+}
+
+/* Persian text needs more vertical breathing room than Latin */
+:where(p, span, div, button, a, label, h1, h2, h3) { line-height: 1.6; }
+
+/* Display font for big numerical/header flair */
+.font-display { font-family: var(--font-display); }
+
+/* Tabular nums via OpenType (works on both fonts and on system fallback) */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background:
+      radial-gradient(1100px circle at 0% 0%,    rgba(16,185,129,0.12), transparent 50%),
+      radial-gradient(1100px circle at 100% 0%,  rgba(168,85,247,0.10),  transparent 50%),
+      radial-gradient(900px circle at 50% 100%,  rgba(245,158,11,0.08),  transparent 55%),
+      linear-gradient(180deg, #07101A 0%, #04080F 100%);
+    background-attachment: fixed;
+    color: #E2E8F0;
+  }
+}
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
+
+* { -webkit-tap-highlight-color: transparent; }
+
+.pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0.75rem); }
+.pt-safe { padding-top: max(env(safe-area-inset-top), 0.5rem); }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+.surface {
+  background-color: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 24px -12px rgba(15, 23, 42, 0.08);
+}
+@media (prefers-color-scheme: dark) {
+  .surface {
+    background-color: #111827;
+    border-color: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.4), 0 12px 24px -12px rgba(0,0,0,0.6);
+  }
+}
+
+.surface-muted {
+  background-color: rgba(248, 250, 252, 0.6);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+@media (prefers-color-scheme: dark) {
+  .surface-muted {
+    background-color: rgba(17, 24, 39, 0.6);
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-rise { animation: rise 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, rgba(148,163,184,0.10) 0%, rgba(148,163,184,0.20) 50%, rgba(148,163,184,0.10) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 0.5rem;
+}
+
+/* ─── exciting UI animations ─── */
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+.animate-float { animation: float-y 5s cubic-bezier(0.45,0,0.55,1) infinite; }
+
+@keyframes spin-slow { to { transform: rotate(360deg); } }
+.animate-spin-slow { animation: spin-slow 28s linear infinite; }
+
+@keyframes pulse-glow-em {
+  0%, 100% { box-shadow: 0 0 24px -2px rgba(16,185,129,0.45), 0 0 0 0 rgba(16,185,129,0.4); }
+  50%      { box-shadow: 0 0 40px 4px  rgba(16,185,129,0.65), 0 0 0 6px rgba(16,185,129,0.0); }
+}
+.animate-pulse-glow-em { animation: pulse-glow-em 2.4s ease-in-out infinite; }
+
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1);   opacity: 1; }
+  50%      { transform: scale(1.6); opacity: 0.4; }
+}
+.pulse-dot::after {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: pulse-dot 1.8s ease-in-out infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 9s ease infinite;
+}
+
+@keyframes shimmer-x {
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+.shimmer-sweep { position: relative; overflow: hidden; }
+.shimmer-sweep::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(110deg, transparent 20%, rgba(255,255,255,0.18) 50%, transparent 80%);
+  animation: shimmer-x 3.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes ring-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(16,185,129,0.6); }
+  100% { box-shadow: 0 0 0 14px rgba(16,185,129,0); }
+}
+.ring-pulse { animation: ring-pulse 1.8s cubic-bezier(0.22,1,0.36,1) infinite; }
+
+/* gradient text helper */
+.text-gradient-brand {
+  background: linear-gradient(110deg, #34d399 0%, #059669 40%, #0d9488 70%, #34d399 100%);
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+  background-size: 200% 100%;
+  animation: gradient-shift 6s ease infinite;
+}
+.text-gradient-gold {
+  background: linear-gradient(110deg, #fde68a 0%, #f59e0b 50%, #c2410c 100%);
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+}
+
+/* aurora utility for big backgrounds */
+.aurora {
+  background:
+    radial-gradient(at 18% 22%, rgba(16,185,129,0.45)  0px, transparent 45%),
+    radial-gradient(at 82% 18%, rgba(124,58,237,0.35)  0px, transparent 50%),
+    radial-gradient(at 30% 80%, rgba(245,158,11,0.32)  0px, transparent 55%),
+    radial-gradient(at 80% 80%, rgba(56,189,248,0.30)  0px, transparent 50%);
+}
+
+/* glass surfaces (more dramatic than .surface) */
+.glass {
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.5);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.7) inset,
+    0 12px 40px -16px rgba(2,44,34,0.25),
+    0 4px 12px -6px rgba(15,23,42,0.08);
+}
+@media (prefers-color-scheme: dark) {
+  .glass {
+    background: rgba(17,24,39,0.55);
+    border-color: rgba(255,255,255,0.08);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.06) inset,
+      0 18px 44px -16px rgba(0,0,0,0.7);
+  }
+}
+
+/* depth pop for flight cards */
+.depth-flight {
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.8) inset,
+    0 10px 30px -10px rgba(6,95,70,0.35),
+    0 4px 14px -6px rgba(6,95,70,0.15);
+}
+@media (prefers-color-scheme: dark) {
+  .depth-flight {
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.05) inset,
+      0 18px 38px -14px rgba(0,0,0,0.7);
+  }
+}
+
+/* spring entrance */
+@keyframes spring-in {
+  0%   { opacity: 0; transform: translateY(14px) scale(0.96); }
+  60%  { opacity: 1; transform: translateY(-2px) scale(1.015); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-spring { animation: spring-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* respect motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* react-multi-date-picker theme overrides ─ IRCrew brand */
+.ircrew-cal.rmdp-wrapper { background: transparent; box-shadow: none; border: none; font-family: var(--font-sans); }
+.ircrew-cal .rmdp-calendar { padding: 0; }
+.ircrew-cal .rmdp-header-values { font-weight: 800; font-size: 0.92rem; }
+.ircrew-cal .rmdp-arrow-container { border-radius: 0.5rem; width: 28px; height: 28px; }
+.ircrew-cal .rmdp-arrow-container:hover { background-color: rgba(16, 185, 129, 0.12); }
+.ircrew-cal .rmdp-arrow-container:hover .rmdp-arrow { border-color: var(--color-brand-700); }
+.ircrew-cal .rmdp-arrow { border-color: rgb(100 116 139); }
+.ircrew-cal .rmdp-week-day { color: rgb(148 163 184); font-weight: 700; font-size: 0.72rem; }
+.ircrew-cal .rmdp-day { font-weight: 600; padding: 2px; }
+.ircrew-cal .rmdp-day span { border-radius: 0.65rem; transition: all 0.15s; }
+.ircrew-cal .rmdp-day:not(.rmdp-disabled):not(.rmdp-day-hidden) span:hover {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  color: var(--color-brand-700) !important;
+}
+.ircrew-cal .rmdp-day.rmdp-today span {
+  background-color: transparent !important;
+  color: var(--color-brand-700) !important;
+  font-weight: 900;
+  outline: 2px dashed var(--color-brand-500);
+  outline-offset: -3px;
+}
+.ircrew-cal .rmdp-day.rmdp-selected span:not(.highlight) {
+  background: linear-gradient(135deg, var(--color-brand-600), var(--color-brand-800)) !important;
+  color: white !important;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(6, 95, 70, 0.4);
+}
+.ircrew-cal .rmdp-day-picker, .ircrew-cal .rmdp-month-picker, .ircrew-cal .rmdp-year-picker {
+  padding: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ircrew-cal .rmdp-arrow { border-color: rgb(148 163 184); }
+  .ircrew-cal .rmdp-arrow-container:hover .rmdp-arrow { border-color: var(--color-brand-400); }
+  .ircrew-cal .rmdp-week-day { color: rgb(100 116 139); }
+  .ircrew-cal .rmdp-day { color: rgb(226 232 240); }
+  .ircrew-cal .rmdp-day.rmdp-deactive, .ircrew-cal .rmdp-day.rmdp-disabled { color: rgb(71 85 105); }
+  .ircrew-cal .rmdp-day.rmdp-today span { color: var(--color-brand-400) !important; }
+  .ircrew-cal .rmdp-day:not(.rmdp-disabled):not(.rmdp-day-hidden) span:hover {
+    background-color: rgba(16, 185, 129, 0.16) !important;
+    color: var(--color-brand-300) !important;
+  }
+}
