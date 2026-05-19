@@ -1,26 +1,54 @@
 import { useState, type FormEvent } from 'react';
-import { Plane, KeyRound, User, Loader2, Sparkles } from 'lucide-react';
-import { api } from '../lib/api';
+import { Plane, KeyRound, User, Loader2, Sparkles, AlertTriangle, WifiOff } from 'lucide-react';
+import { api, ApiError, type ApiFailKind } from '../lib/api';
 import type { Credentials } from '../lib/types';
+
+interface LoginFault {
+  kind: ApiFailKind | 'validation';
+  message: string;
+  /** Whether to surface the "ادامه با حالت نمایشی" hint underneath. */
+  offerDemo: boolean;
+}
+
+function faultFor(e: unknown): LoginFault {
+  if (e instanceof ApiError) {
+    switch (e.kind) {
+      case 'auth':
+        return { kind: e.kind, message: 'کد یا رمز عبور نادرست است.', offerDemo: false };
+      case 'network':
+        return { kind: e.kind, message: 'به سرور دسترسی نیست. اتصال اینترنت یا آدرس پراکسی را بررسی کنید.', offerDemo: true };
+      case 'upstream-down':
+        return { kind: e.kind, message: e.message, offerDemo: true };
+      case 'truncated':
+        return { kind: e.kind, message: 'پاسخ سرور ناقص دریافت شد. دوباره تلاش کنید.', offerDemo: true };
+      default:
+        return { kind: e.kind, message: e.message || 'ورود ناموفق بود.', offerDemo: false };
+    }
+  }
+  if (e instanceof Error) return { kind: 'network', message: e.message || 'ورود ناموفق بود.', offerDemo: true };
+  return { kind: 'network', message: 'ورود ناموفق بود.', offerDemo: true };
+}
 
 export function LoginScreen({ onAuth }: { onAuth: (c: Credentials) => void }) {
   const [code, setCode] = useState('');
   const [pass, setPass] = useState('');
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [fault, setFault] = useState<LoginFault | null>(null);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!code || !pass) { setErr('کد و رمز را وارد کنید.'); return; }
-    setErr(null);
+    if (!code || !pass) {
+      setFault({ kind: 'validation', message: 'کد و رمز را وارد کنید.', offerDemo: false });
+      return;
+    }
+    setFault(null);
     setLoading(true);
     try {
       const c = { code: code.trim().toUpperCase(), pass: pass.trim() };
       await api.login(c);
       onAuth(c);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'ورود ناموفق بود.';
-      setErr(msg.includes('Login failed') ? 'کد یا رمز اشتباه است.' : msg);
+      setFault(faultFor(e));
     } finally {
       setLoading(false);
     }
@@ -94,11 +122,29 @@ export function LoginScreen({ onAuth }: { onAuth: (c: Credentials) => void }) {
             </div>
           </div>
 
-          {err && (
-            <div className="text-[12px] text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200/70 dark:border-red-900/40 rounded-xl px-3 py-2 backdrop-blur">
-              {err}
-            </div>
-          )}
+          {fault && (() => {
+            const isAuth = fault.kind === 'auth';
+            const isNetwork = fault.kind === 'network' || fault.kind === 'truncated' || fault.kind === 'upstream-down';
+            const tone = isAuth
+              ? 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border-red-200/70 dark:border-red-900/40'
+              : isNetwork
+                ? 'text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 border-amber-200/70 dark:border-amber-900/40'
+                : 'text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800';
+            const Icon = isNetwork ? WifiOff : AlertTriangle;
+            return (
+              <div className={`text-[12px] border rounded-xl px-3 py-2 backdrop-blur ${tone}`}>
+                <div className="flex items-start gap-2">
+                  <Icon className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                  <div className="flex-1 leading-relaxed">{fault.message}</div>
+                </div>
+                {fault.offerDemo && (
+                  <div className="mt-2 text-[11px] opacity-85 border-t border-current/15 pt-2">
+                    می‌توانید با دکمهٔ <b>«مشاهده با داده‌های نمایشی»</b> پایین، اپ را بدون نیاز به سرور Iran Air ببینید.
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           <button
             type="submit"

@@ -562,4 +562,15 @@ function friendlyError(e) {
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
+// Belt-and-braces process-level guards. An axios socket erroring after we've
+// already responded, or a stray `.then()` without a `.catch()`, used to take
+// the whole proxy down (`node --watch` would then restart it mid-request,
+// which the client saw as "Invalid server response"). Log and keep serving.
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err);
+});
+
 app.listen(PORT, () => console.log(`IRCrew proxy listening on http://localhost:${PORT}`));

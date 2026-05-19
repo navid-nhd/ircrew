@@ -25,13 +25,25 @@ export const apiBase = {
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
+export type ApiFailKind =
+  | 'network'         // fetch itself threw (proxy unreachable / dev server down / DNS / TLS)
+  | 'truncated'       // connection dropped mid-response — body wasn't valid JSON
+  | 'upstream-down'   // proxy returned 502/504 — Iran Air or our proxy can't reach it
+  | 'auth'            // proxy returned 401 — credentials are wrong
+  | 'no-data'         // proxy returned 404 with noData=true (date out of retention)
+  | 'not-found'       // proxy returned 404 with notFound=true (flight not in grid)
+  | 'server-error'    // any other 5xx
+  | 'client-error';   // 400 / other unexpected status
+
 export class ApiError extends Error {
   status: number;
+  kind: ApiFailKind;
   noData?: boolean;
   notFound?: boolean;
   seenCount?: number;
   constructor(message: string, opts: {
     status: number;
+    kind: ApiFailKind;
     noData?: boolean;
     notFound?: boolean;
     seenCount?: number;
@@ -39,6 +51,7 @@ export class ApiError extends Error {
     super(message);
     this.name = 'ApiError';
     this.status = opts.status;
+    this.kind = opts.kind;
     this.noData = opts.noData;
     this.notFound = opts.notFound;
     this.seenCount = opts.seenCount;
@@ -62,30 +75,85 @@ async function postOnce(path: string, body: unknown, signal?: AbortSignal): Prom
   });
 }
 
-// Auto-retry on 502 (upstream-gateway failure surfaced by our proxy after its
-// own retries exhausted). Often the previous attempt populated the server-side
-// session cache, so the next try is fast. 404 = stable failure (no data /
-// not found) — don't retry.
+// Map an HTTP status + body shape onto a typed ApiError so the UI can react
+// without parsing English strings. Persian message is what the user actually
+// sees in the error toast / login screen.
+function classifyHttpError(status: number, body: ApiErrorBody, hasJson: boolean): ApiError {
+  if (status === 401) {
+    return new ApiError('کد یا رمز عبور نادرست است.', { status, kind: 'auth' });
+  }
+  if (status === 404 && body.noData) {
+    return new ApiError(body.error || 'برای این تاریخ داده‌ای ثبت نشده.', { status, kind: 'no-data', noData: true });
+  }
+  if (status === 404 && body.notFound) {
+    return new ApiError(body.error || 'موردی پیدا نشد.', { status, kind: 'not-found', notFound: true, seenCount: body.seenCount });
+  }
+  if (status === 502 || status === 504) {
+    return new ApiError(
+      body.error || 'سرور Iran Air در دسترس نیست. لطفاً چند دقیقه بعد دوباره تلاش کنید (سامانه معمولاً بین ۲۰ تا ۸ صبح خاموش است).',
+      { status, kind: 'upstream-down' },
+    );
+  }
+  if (status >= 500) {
+    return new ApiError(
+      hasJson ? (body.error || `خطای سرور (${status}).`) : 'پاسخ سرور ناقص بود؛ اتصال احتمالاً قطع شد. دوباره تلاش کنید.',
+      { status, kind: hasJson ? 'server-error' : 'truncated' },
+    );
+  }
+  if (status >= 400) {
+    return new ApiError(body.error || `درخواست نامعتبر (${status}).`, { status, kind: 'client-error' });
+  }
+  // 2xx but body.ok === false — the proxy is reporting a logical failure.
+  return new ApiError(body.error || 'پاسخ سرور قابل پردازش نیست.', { status, kind: hasJson ? 'server-error' : 'truncated' });
+}
+
+// Auto-retry on 502/504 (upstream-gateway failure) AND on truncated responses
+// (dev-server restart in the middle of a slow Iran Air round-trip). 404 = stable
+// failure, don't retry.
 async function post<T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> {
   let lastErr: ApiError | null = null;
   for (let attempt = 1; attempt <= 3; attempt++) {
     if (signal?.aborted) throw new DOMException('aborted', 'AbortError');
-    const res = await postOnce(path, body, signal);
-    const data = await res.json().catch(() => ({ ok: false, error: 'Invalid server response' } as ApiErrorBody));
-    if (res.ok && (data as { ok?: boolean }).ok !== false) return data as T;
 
-    const errBody = data as ApiErrorBody;
-    lastErr = new ApiError(errBody.error || `Request failed (${res.status})`, {
-      status: res.status,
-      noData: errBody.noData,
-      notFound: errBody.notFound,
-      seenCount: errBody.seenCount,
-    });
-    const isTransient = res.status === 502 || res.status === 504;
+    let res: Response;
+    try {
+      res = await postOnce(path, body, signal);
+    } catch (netErr) {
+      // fetch() itself threw — the dev proxy is down, DNS is broken, the
+      // mobile device lost the LAN, the user toggled airplane mode mid-tap…
+      // Re-throw with the typed error so the UI can show a useful message
+      // instead of an opaque "Invalid server response".
+      if (netErr instanceof DOMException && netErr.name === 'AbortError') throw netErr;
+      lastErr = new ApiError(
+        'به سرور دسترسی نیست. آدرس پراکسی را در تنظیمات بررسی کنید، یا با حالت نمایشی ادامه دهید.',
+        { status: 0, kind: 'network' },
+      );
+      if (attempt === 3) break;
+      await sleep(700 * attempt);
+      continue;
+    }
+
+    // Read the body once, then try to JSON-parse it. If parsing fails we still
+    // have the raw text to log; the user sees a "truncated response" message.
+    const raw = await res.text().catch(() => '');
+    let parsed: ApiErrorBody | null = null;
+    let hasJson = false;
+    if (raw) {
+      try { parsed = JSON.parse(raw) as ApiErrorBody; hasJson = true; }
+      catch { /* leave parsed as null */ }
+    }
+
+    if (res.ok && hasJson && (parsed as { ok?: boolean })?.ok !== false) {
+      return parsed as unknown as T;
+    }
+
+    lastErr = classifyHttpError(res.status, parsed ?? {}, hasJson);
+
+    const isTransient = lastErr.kind === 'upstream-down' || lastErr.kind === 'truncated';
     if (!isTransient || attempt === 3) break;
     await sleep(700 * attempt);
   }
-  throw lastErr ?? new Error('Request failed');
+  throw lastErr ?? new ApiError('درخواست با خطا مواجه شد.', { status: 0, kind: 'network' });
 }
 
 export interface FetchOpts {
