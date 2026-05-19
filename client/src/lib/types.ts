@@ -1,6 +1,9 @@
 export interface Credentials {
   code: string;
   pass: string;
+  /** True when the user chose to skip the Iran Air login. Online-only tabs
+   *  render a "connect to server" prompt; FTL Checker still works fully. */
+  offline?: boolean;
 }
 
 export type DutyKind =

@@ -38,3 +38,7 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# ── Temp files from local tooling ───────────────────────────────────────────
+commit-msg.tmp
+*.tmp

@@ -259,7 +259,16 @@ export function FtlTab({ creds, position }: Props) {
       {tab === 'history' && (
         <>
           <div className="my-3">
-            <RosterImport creds={creds} onImport={onImportHistory} />
+            {creds.offline ? (
+              <div className="surface rounded-2xl p-4 text-[12px] text-amber-800 dark:text-amber-200 bg-amber-50/70 dark:bg-amber-950/30 ring-1 ring-amber-300/40 flex items-start gap-2" dir="rtl">
+                <span className="w-2 h-2 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                <div className="flex-1 leading-relaxed">
+                  در حالت آفلاین ایمپورت خودکار از روستر فعال نیست. می‌توانید سابقه را پایین به‌صورت دستی وارد کنید، یا از سربرگ بالا روی «اتصال» بزنید تا برنامهٔ ماهانه مستقیماً از سرور خوانده شود.
+                </div>
+              </div>
+            ) : (
+              <RosterImport creds={creds} onImport={onImportHistory} />
+            )}
           </div>
           {importedFrom && (
             <div className="surface rounded-xl px-3 py-2 my-2 text-[11.5px] text-emerald-700 dark:text-emerald-300 flex items-center gap-2" dir="rtl">

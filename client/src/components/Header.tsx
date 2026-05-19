@@ -1,16 +1,23 @@
 import { useState } from 'react';
-import { LogOut, Plane, Settings } from 'lucide-react';
+import { LogOut, Plane, Settings, Wifi, WifiOff } from 'lucide-react';
 import { greetingFa } from '../lib/utils';
 import { SettingsSheet } from './SettingsSheet';
+import { ConnectSheet } from './ConnectSheet';
+import type { Credentials } from '../lib/types';
 
-export function Header({ crewCode, honorific, onLogout }: {
+export function Header({ crewCode, honorific, onLogout, offline, onReconnected }: {
   crewCode: string;
   /** Persian honorific derived from the user's own roster position. Optional —
    *  we show the crew code only when we can't infer a role yet. */
   honorific?: string;
   onLogout: () => void;
+  /** True when the session is offline (FTL-only). */
+  offline?: boolean;
+  /** Called when the user successfully signs in via the inline ConnectSheet. */
+  onReconnected?: (c: Credentials) => void;
 }) {
   const [showSettings, setShowSettings] = useState(false);
+  const [showConnect, setShowConnect] = useState(false);
   return (
     <header className="pt-safe sticky top-0 z-20 backdrop-blur-2xl bg-white/65 dark:bg-slate-950/60 border-b border-slate-200/50 dark:border-slate-800/50">
       <div className="mx-auto max-w-screen-sm px-4 pt-3 pb-3 flex items-center gap-3">
@@ -25,11 +32,25 @@ export function Header({ crewCode, honorific, onLogout }: {
             <div className="text-[12px] opacity-60 font-semibold">{greetingFa()}</div>
             <div className="text-[14px] font-extrabold tracking-tight">
               {honorific ? <>{honorific} </> : null}
-              <span className="text-gradient-brand tabular-nums tracking-wider">{crewCode}</span>
+              <span className="text-gradient-brand tabular-nums tracking-wider">{crewCode === 'OFFLINE' ? 'مهمان' : crewCode}</span>
             </div>
           </div>
         </div>
         <div className="flex-1" />
+
+        {offline && (
+          <button
+            onClick={() => setShowConnect(true)}
+            className="h-9 px-2.5 flex items-center gap-1.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 ring-1 ring-amber-300/60 dark:ring-amber-700/40 text-[11px] font-extrabold active:scale-95 transition-transform"
+            title="اتصال به سرور"
+          >
+            <WifiOff className="w-3.5 h-3.5" strokeWidth={2.6} />
+            <span>آفلاین</span>
+            <span className="opacity-50">·</span>
+            <span className="flex items-center gap-0.5"><Wifi className="w-3 h-3" /> اتصال</span>
+          </button>
+        )}
+
         <button
           onClick={() => setShowSettings(true)}
           aria-label="تنظیمات"
@@ -46,6 +67,13 @@ export function Header({ crewCode, honorific, onLogout }: {
         </button>
       </div>
       {showSettings && <SettingsSheet onClose={() => setShowSettings(false)} />}
+      {showConnect && (
+        <ConnectSheet
+          initialCode={crewCode !== 'OFFLINE' ? crewCode : ''}
+          onClose={() => setShowConnect(false)}
+          onConnected={(c) => { setShowConnect(false); onReconnected?.(c); }}
+        />
+      )}
     </header>
   );
 }

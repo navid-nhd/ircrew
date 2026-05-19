@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Plane, KeyRound, User, Loader2, Sparkles, AlertTriangle, WifiOff } from 'lucide-react';
+import { Plane, KeyRound, User, Loader2, Sparkles, AlertTriangle, WifiOff, ShieldCheck } from 'lucide-react';
 import { api, ApiError, type ApiFailKind } from '../lib/api';
 import type { Credentials } from '../lib/types';
 
@@ -169,6 +169,19 @@ export function LoginScreen({ onAuth }: { onAuth: (c: Credentials) => void }) {
             <Sparkles className="w-3.5 h-3.5 animate-pulse" strokeWidth={2.6} />
             مشاهده با داده‌های نمایشی
           </button>
+
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => onAuth({ code: 'OFFLINE', pass: '', offline: true })}
+            className="w-full rounded-xl bg-white/55 dark:bg-slate-800/50 text-[12.5px] py-2.5 text-slate-700 dark:text-slate-200 hover:bg-white/80 dark:hover:bg-slate-800/70 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 font-extrabold backdrop-blur border border-slate-200/70 dark:border-slate-700/50"
+          >
+            <ShieldCheck className="w-3.5 h-3.5" strokeWidth={2.6} />
+            ادامه بدون اتصال — فقط بررسی FTL
+          </button>
+          <p className="text-[10.5px] text-slate-500 dark:text-slate-400 text-center leading-relaxed -mt-2">
+            در حالت آفلاین فقط ابزار <b>بررسی FTL</b> کار می‌کند. هر زمان از سربرگ بالا می‌توانید وصل شوید.
+          </p>
         </form>
 
         <p className="text-[11px] text-slate-500 dark:text-slate-500 text-center mt-5 leading-relaxed px-2">
