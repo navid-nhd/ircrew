@@ -11,6 +11,10 @@ import { AdjacentDuties } from './AdjacentDuties';
 import { RosterImport } from './RosterImport';
 import { MonthLegalityScan } from './MonthLegalityScan';
 import { fdpsToCandidates } from '../lib/dutyToCandidate';
+import { Toolbox } from './Toolbox';
+import { WatchdogAlertsCard } from './WatchdogAlertsCard';
+import { scanForBearTraps } from '../lib/watchdogs';
+import { vaultEntries } from '../lib/recordsVault';
 import '../ftl/ftl-styles.css';
 
 // All state for the FTL Checker is persisted per crew code so two roles using
@@ -83,7 +87,7 @@ const duplicateForNextDay = (c: ProposedFlight): ProposedFlight => {
   };
 };
 
-type Tab = 'profile' | 'history' | 'flight' | 'results';
+type Tab = 'profile' | 'history' | 'flight' | 'results' | 'tools';
 
 interface Props {
   creds: Credentials;
@@ -178,16 +182,25 @@ export function FtlTab({ creds, position }: Props) {
   const warnCount = result?.checks.filter((c) => c.status === 'warn').length ?? 0;
 
   // After a successful import, drop the user straight into the flights view
-  // with real candidates derived from upcoming FDPs.
+  // with real candidates derived from upcoming FDPs. We also archive everything
+  // into the 24-month vault so the user owns the data even if Iran Air's
+  // upstream later forgets a flight.
   const onImportHistory = (entries: DutyEntry[], periodLabel: string) => {
     setHistory(entries);
     setImportedFrom(periodLabel);
+    vaultEntries(crewCode, entries, periodLabel);
     const derived = fdpsToCandidates(entries);
     if (derived.length > 0) {
       setCandidates(derived);
       setActiveIndex(0);
     }
   };
+
+  // Bear-trap scan over current history — re-evaluated whenever entries change.
+  const watchdogAlerts = useMemo(
+    () => scanForBearTraps({ history }),
+    [history],
+  );
 
   return (
     <div className="ftl-scope app pt-3">
@@ -198,6 +211,9 @@ export function FtlTab({ creds, position }: Props) {
         </button>
         <button className={`tab ${tab === 'flight' ? 'active' : ''}`} onClick={() => setTab('flight')}>
           ۳. کاندیدها <span className="num" style={{ color: '#888' }}>({candidates.length})</span>
+        </button>
+        <button className={`tab ${tab === 'tools' ? 'active' : ''}`} onClick={() => setTab('tools')}>
+          ابزارها
         </button>
         <button className={`tab ${tab === 'results' ? 'active' : ''}`} onClick={() => setTab('results')}>
           ۴. نتیجه
@@ -274,6 +290,11 @@ export function FtlTab({ creds, position }: Props) {
             <div className="surface rounded-xl px-3 py-2 my-2 text-[11.5px] text-emerald-700 dark:text-emerald-300 flex items-center gap-2" dir="rtl">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               <span>سابقه از دورهٔ «{importedFrom}» جایگزین شد ({history.length} رویداد)</span>
+            </div>
+          )}
+          {watchdogAlerts.length > 0 && (
+            <div className="my-3">
+              <WatchdogAlertsCard alerts={watchdogAlerts} />
             </div>
           )}
           <div className="my-3">
@@ -354,6 +375,12 @@ export function FtlTab({ creds, position }: Props) {
             <button className="btn btn-secondary" onClick={() => setTab('history')}>← اصلاح سابقه</button>
           </div>
         </>
+      )}
+
+      {tab === 'tools' && (
+        <div className="my-2">
+          <Toolbox creds={creds} profile={profile} />
+        </div>
       )}
     </div>
   );

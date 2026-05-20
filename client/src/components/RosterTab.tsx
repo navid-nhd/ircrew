@@ -12,6 +12,10 @@ import {
 import { DayCard } from './DayCard';
 import { MonthCalendar } from './MonthCalendar';
 import { derivePositionFromRoster, profileStore } from '../lib/profile';
+import { auditRoster, type RosterAuditResult } from '../lib/rosterAudit';
+import { vaultEntries } from '../lib/recordsVault';
+import { rosterToHistory } from '../lib/rosterToHistory';
+import { RosterAuditCard } from './RosterAuditCard';
 
 interface Props {
   creds: Credentials;
@@ -32,6 +36,7 @@ export function RosterTab({ creds, onPositionLearned }: Props) {
   const [refreshTick, setRefreshTick] = useState(0);
   const [view, setView] = useState<ViewMode>('calendar');
   const [selectedIso, setSelectedIso] = useState<string>(todayIso());
+  const [audit, setAudit] = useState<RosterAuditResult | null>(null);
   const dayDetailRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -57,6 +62,14 @@ export function RosterTab({ creds, onPositionLearned }: Props) {
         if (pos) {
           profileStore.save(creds.code, { position: pos, updatedAt: Date.now() });
           onPositionLearned?.(pos);
+        }
+        // Fold every fresh fetch into the 24-month vault AND diff it against
+        // the previous snapshot for the roster-auditor card.
+        if (!r.stale) {
+          const conv = rosterToHistory(r.data.rows);
+          vaultEntries(creds.code, conv.entries, period);
+          const auditResult = auditRoster(creds.code, period, r.data);
+          setAudit(auditResult);
         }
       } catch (e) {
         if (ctrl.signal.aborted) return;
@@ -165,6 +178,8 @@ export function RosterTab({ creds, onPositionLearned }: Props) {
       </div>
 
       <HeroStats flt={stats.flt} off={stats.off} rsv={stats.rsv} hours={hours} minutes={minutes} />
+
+      <RosterAuditCard audit={audit} />
 
       {err && (
         <div className="surface rounded-xl px-3 py-3 my-3 text-[13px] text-red-600 dark:text-red-400 flex items-center gap-2">
