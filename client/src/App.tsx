@@ -8,6 +8,8 @@ import { FlightCrewTab } from './components/FlightCrewTab';
 import { FtlTab } from './components/FtlTab';
 import { OfflineConnectPrompt } from './components/OfflineConnectPrompt';
 import { StatsTab } from './components/StatsTab';
+import { ActivationScreen } from './components/ActivationScreen';
+import { activationStore } from './lib/activation';
 import { honorificFromPosition } from './lib/positions';
 import { profileStore } from './lib/profile';
 
@@ -23,6 +25,9 @@ function loadCreds(): Credentials | null {
 }
 
 export function App() {
+  // The activation gate is the very first thing — once activated, the flag
+  // stays in localStorage and we never prompt again on this device.
+  const [activated, setActivated] = useState<boolean>(() => activationStore.isActivated());
   const [creds, setCreds] = useState<Credentials | null>(() => loadCreds());
   // When the user is offline, the FTL Checker is the only fully-functional
   // tab, so we land them there. Online users keep the original roster default.
@@ -53,6 +58,7 @@ export function App() {
     setTab('roster');
   };
 
+  if (!activated) return <ActivationScreen onActivated={() => setActivated(true)} />;
   if (!creds) return <LoginScreen onAuth={setCreds} />;
 
   const honorific = position ? honorificFromPosition(position) : undefined;

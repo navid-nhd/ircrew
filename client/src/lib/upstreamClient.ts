@@ -308,27 +308,49 @@ const monthStartOffset = (yyyyMmDd: string): number => {
 
 /** Select a date on the FlightCrew.aspx calendar.
  *
- *  ASP.NET Calendar shows ONE month at a time and only registers the day cells
- *  it actually rendered as valid postback arguments. Clicking a day in another
- *  month fails with "Invalid postback or callback argument". To work around
- *  that, we POST "V<startOfMonth-offset>" first so the calendar re-renders the
- *  target month — but only when the target month differs from the visible one.
- *  Sending the V postback for the already-visible month resets the selection
- *  state on Iran Air's custom control and causes the next day postback to
- *  return an empty grid. */
+ *  ASP.NET Calendar's EnableEventValidation only registers postback arguments
+ *  for what was RENDERED on the current page — that's the currently-visible
+ *  month's day cells, PLUS exactly TWO navigation args (V<startOfPrevMonth>
+ *  and V<startOfNextMonth>). You cannot jump from May to February in one
+ *  postback; the V argument for February is not registered yet.
+ *
+ *  So to reach a target month N months away from today, we have to walk
+ *  one month at a time, each step issuing the V postback for the next-step
+ *  month start, then finally click the actual day in the target month. */
 async function aspxSelectCalendarDate(state: AspxState, yyyyMmDd: string): Promise<AspxState> {
   const dayOffset = dateToOffset(yyyyMmDd);
-  // What month is currently visible? Cheap heuristic: today, which is what the
-  // FlightCrew page defaults to right after login.
+  const [targetYear, targetMonth] = yyyyMmDd.split('-').map(Number);
+
+  // Start month: today (FlightCrew.aspx defaults the calendar to today right
+  // after a fresh login).
   const now = new Date();
-  const todayMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const targetMonth = yyyyMmDd.slice(0, 7);
+  let curYear = now.getFullYear();
+  let curMonth = now.getMonth() + 1;
 
   let s = state;
-  if (targetMonth !== todayMonth) {
-    const startOff = monthStartOffset(yyyyMmDd);
-    s = await aspxPostback(s, 'CalendarDate', `V${startOff}`);
+  // Hard cap on steps so a buggy date never sends us into an infinite walk —
+  // 24 months covers everything the upstream actually retains.
+  const MAX_STEPS = 24;
+  let steps = 0;
+  while ((curYear !== targetYear || curMonth !== targetMonth) && steps < MAX_STEPS) {
+    const cursorAbs = curYear * 12 + curMonth;
+    const targetAbs = targetYear * 12 + targetMonth;
+    const goForward = cursorAbs < targetAbs;
+    if (goForward) {
+      curMonth += 1;
+      if (curMonth > 12) { curMonth = 1; curYear += 1; }
+    } else {
+      curMonth -= 1;
+      if (curMonth < 1) { curMonth = 12; curYear -= 1; }
+    }
+    const stepIso = `${curYear}-${String(curMonth).padStart(2, '0')}-01`;
+    const stepOff = monthStartOffset(stepIso);
+    s = await aspxPostback(s, 'CalendarDate', `V${stepOff}`);
+    steps += 1;
   }
+
+  // Now click the actual day. The target month is rendered and its day cells
+  // are registered.
   s = await aspxPostback(s, 'CalendarDate', String(dayOffset));
   return s;
 }
