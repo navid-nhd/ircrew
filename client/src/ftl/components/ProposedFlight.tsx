@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { ProposedFlight } from '../rules/types';
 import PersianDateTime from './PersianDateTime';
 import Tooltip from './Tooltip';
@@ -8,10 +9,13 @@ interface Props {
 }
 
 export default function ProposedFlightPanel({ proposed, onChange }: Props) {
+  // Default to "ساده" so new users see only the essential 5-6 fields.
+  // The advanced sections cover edge cases that don't apply to most flights.
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
   const set = <K extends keyof ProposedFlight>(k: K, v: ProposedFlight[K]) =>
     onChange({ ...proposed, [k]: v });
 
-  // Auto-derive HH:MM reference time from reportingTimeLocal whenever it changes
   const onReport = (iso: string) => {
     const d = new Date(iso);
     const hhmm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -21,8 +25,11 @@ export default function ProposedFlightPanel({ proposed, onChange }: Props) {
   return (
     <div className="card">
       <h2>۳. مشخصات پرواز پیشنهادی</h2>
-      <div className="help">
-        تمام جزئیات پرواز پیشنهادی را وارد کن. برای هر فیلد می‌توانی روی علامت <b>?</b> ماوس را نگه داری تا توضیح کامل ببینی.
+      <div className="help" style={{ lineHeight: 1.85 }}>
+        <b>راهنما:</b> برای محاسبهٔ اولیه فقط چهار چیز لازم است — <b>زمان حضور</b>،
+        <b> ETD</b>، <b>ETA</b> و <b>تعداد سکتور</b>. بقیهٔ تنظیمات (Augmentation،
+        Extension، Standby، Acclimatization) پیش‌فرض دارند و اگر پروازت موارد خاص ندارد
+        می‌توانی نادیده‌شان بگیری. روی علامت <b>?</b> کنار هر فیلد بزن تا توضیح کامل ببینی.
       </div>
 
       <h3>برچسب و زمان‌های پرواز</h3>
@@ -143,6 +150,29 @@ export default function ProposedFlightPanel({ proposed, onChange }: Props) {
           </select>
         </div>
       </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '14px 0 4px' }}>
+        <button
+          type="button"
+          onClick={() => setShowAdvanced((v) => !v)}
+          style={{
+            padding: '8px 14px', borderRadius: 12,
+            border: '1px solid var(--brand-2)',
+            background: showAdvanced ? 'var(--brand)' : 'transparent',
+            color: showAdvanced ? '#fff' : 'var(--brand-2)',
+            fontFamily: 'IRANSans', fontWeight: 800, fontSize: 12.5,
+            cursor: 'pointer', flex: 1,
+          }}
+        >
+          {showAdvanced ? '⬆ بستن تنظیمات پیشرفته' : '⬇ نمایش تنظیمات پیشرفته'}
+        </button>
+      </div>
+      <div className="help" style={{ marginTop: 6, marginBottom: 12, fontSize: 11.5 }}>
+        تنظیمات پیشرفته شامل: <b>Augmentation</b>، <b>Extension</b>، <b>Standby قبل از پرواز</b>،
+        <b> تأخیر</b>، <b>Acclimatization و TZ</b>. فقط اگر پروازت شامل یکی از اینها است باز کن.
+      </div>
+
+      {showAdvanced && (<>
 
       <h3>Augmentation و In-flight Rest</h3>
       <div className="row">
@@ -384,6 +414,8 @@ export default function ProposedFlightPanel({ proposed, onChange }: Props) {
             onChange={e => set('travellingMinOneWay', Number(e.target.value))} />
         </div>
       </div>
+
+      </>)}
     </div>
   );
 }

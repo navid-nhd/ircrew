@@ -48,6 +48,10 @@
 
 html, body, #root { height: 100%; }
 html { -webkit-text-size-adjust: 100%; font-size: 16px; }
+/* Forbid horizontal scroll anywhere — long airport codes, tracking-wide
+   tabular numbers, or third-party widgets occasionally push past viewport
+   width on phones. Defensive hidden so the page never side-scrolls. */
+html, body, #root { overflow-x: hidden; max-width: 100vw; }
 body {
   margin: 0;
   font-family: var(--font-sans);
