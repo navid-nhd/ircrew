@@ -225,8 +225,8 @@ function Cell({ c, onClick }: { c: CellData; onClick: () => void }) {
   const isNone   = c.kind === 'NONE';
   const style = !isNone ? CELL_STYLES[c.kind as Exclude<Kind, 'NONE'>] : null;
   const Icon = style?.Icon ?? null;
-  // The bottom "tag" is one of: flight code (FLIGHT), "D/H" (DEADHEAD), or
-  // the kind's short label (OFF/RSV/...). One source of truth.
+  // Short label under the day number: flight code for FLIGHT, "D/H" for
+  // DEADHEAD, the kind's short label for everything else.
   const tag = isFlight
     ? c.firstFlightCode ?? ''
     : isDH
@@ -238,7 +238,10 @@ function Cell({ c, onClick }: { c: CellData; onClick: () => void }) {
       onClick={onClick}
       aria-label={`روز ${c.jd}`}
       className={cn(
-        'relative aspect-square rounded-xl flex flex-col items-center justify-center transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] overflow-hidden',
+        // No overflow:hidden — the multi-flight rose badge needs to extend
+        // outside the cell border, and at this design scale the corner icon
+        // fits cleanly inside anyway.
+        'relative aspect-square rounded-xl transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]',
         style?.bg,
         style?.text,
         isNone && 'text-slate-400 dark:text-slate-500',
@@ -252,49 +255,47 @@ function Cell({ c, onClick }: { c: CellData; onClick: () => void }) {
         <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/25 via-transparent to-transparent pointer-events-none" />
       )}
 
-      {/* Day number — vertically centered, no overlap with tag */}
-      <span className={cn(
-        // On the narrowest phones (~46-px cells) we keep the number small so
-        // even with a 3-char tag below ("D/H") there's no collision.
-        'relative font-black tabular-nums tracking-wide leading-none',
-        'text-[14px] sm:text-[16px]',
-        (isFlight || isDH) && 'drop-shadow',
-      )}>
-        {toFaDigits(c.jd!)}
-      </span>
-
-      {/* Tag pill below the number — replaces the floating corner icon, so
-          there is no overlap on small cells. Icon sits INSIDE the pill on
-          larger viewports only. */}
-      {tag && (
-        <span className={cn(
-          'relative mt-0.5 sm:mt-1 inline-flex items-center justify-center gap-[2px]',
-          'text-[8.5px] sm:text-[9.5px] font-extrabold tabular-nums tracking-[0.04em]',
-          'leading-none whitespace-nowrap max-w-full px-[3px] py-[1px]',
-          'rounded',
-          // On filled cells the text is white-on-color — no extra bg.
-          // On unfilled (RSV/OFF/etc) we add a subtle pill so the label
-          // stands out against the cell tint.
-          !isFlight && !isDH && 'bg-black/5 dark:bg-white/10',
-          isFlight && 'opacity-95 drop-shadow',
-          (style?.iconColor || style?.text) ?? '',
-        )}>
-          {/* Tiny inline icon — only on sm+ to keep the smallest cells clean */}
-          {Icon && (
-            <Icon
-              className={cn(
-                'hidden sm:block w-[10px] h-[10px] -mr-[1px]',
-                isFlight && '-scale-x-100',
-                isFlight || isDH ? '' : 'opacity-80',
-              )}
-              strokeWidth={2.6}
-            />
+      {/* CONTENT — vertical stack, day number lives in the LOWER half so the
+          corner icon has guaranteed empty space in the upper-left. */}
+      <div className="relative h-full flex flex-col items-center justify-end pb-[3px] sm:pb-1">
+        <span
+          className={cn(
+            'font-black tabular-nums tracking-wide leading-none',
+            'text-[13px] sm:text-[16px]',
+            (isFlight || isDH) && 'drop-shadow',
           )}
-          <span className="truncate">{tag}</span>
+        >
+          {toFaDigits(c.jd!)}
         </span>
+        {tag && (
+          <span
+            className={cn(
+              'mt-0.5 sm:mt-1 text-[8.5px] sm:text-[9.5px] font-extrabold tabular-nums tracking-[0.04em] leading-none whitespace-nowrap max-w-full truncate px-1',
+              isFlight && 'opacity-95 drop-shadow',
+              !isFlight && !isDH && (style?.iconColor || style?.text || ''),
+            )}
+          >
+            {tag}
+          </span>
+        )}
+      </div>
+
+      {/* Corner icon — small enough to fit, large enough to recognise.
+          Sized so it cannot reach the day number sitting in the lower half. */}
+      {Icon && (
+        <Icon
+          className={cn(
+            'absolute top-[3px] left-[3px] sm:top-1 sm:left-1',
+            'w-[10px] h-[10px] sm:w-3 sm:h-3 opacity-85 pointer-events-none',
+            isFlight && '-scale-x-100 drop-shadow',
+            (isFlight || isDH) ? '' : style?.iconColor,
+          )}
+          strokeWidth={2.8}
+        />
       )}
 
-      {/* Multi-flight badge */}
+      {/* Multi-flight badge — extends outside the cell border (the relative
+          parent has no overflow clip so this still shows). */}
       {c.flightCount! > 1 && (isFlight || isDH) && (
         <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-gradient-to-br from-rose-400 to-rose-600 text-white text-[8.5px] font-extrabold grid place-items-center leading-none shadow-md ring-2 ring-white dark:ring-slate-900 animate-pulse">
           {toFaDigits(c.flightCount!)}
