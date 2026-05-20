@@ -1,9 +1,23 @@
 import { useState } from 'react';
-import { LogOut, Plane, Settings, Wifi, WifiOff } from 'lucide-react';
+import { LogOut, Plane, Settings, Wifi, WifiOff, Sun, Moon, SunMoon } from 'lucide-react';
 import { greetingFa } from '../lib/utils';
 import { SettingsSheet } from './SettingsSheet';
 import { ConnectSheet } from './ConnectSheet';
+import { theme, type ThemeMode } from '../lib/theme';
 import type { Credentials } from '../lib/types';
+
+const NEXT_MODE: Record<ThemeMode, ThemeMode> = {
+  auto: 'light',
+  light: 'dark',
+  dark: 'auto',
+};
+
+const MODE_ICON = { auto: SunMoon, light: Sun, dark: Moon };
+const MODE_LABEL: Record<ThemeMode, string> = {
+  auto: 'حالت خودکار',
+  light: 'حالت روشن',
+  dark: 'حالت تاریک',
+};
 
 export function Header({ crewCode, honorific, onLogout, offline, onReconnected }: {
   crewCode: string;
@@ -18,6 +32,14 @@ export function Header({ crewCode, honorific, onLogout, offline, onReconnected }
 }) {
   const [showSettings, setShowSettings] = useState(false);
   const [showConnect, setShowConnect] = useState(false);
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => theme.get());
+
+  const cycleTheme = () => {
+    const next = NEXT_MODE[themeMode];
+    setThemeMode(next);
+    theme.set(next);
+  };
+  const ThemeIcon = MODE_ICON[themeMode];
 
   // Consistent square icon button — 38×38 (large enough for thumb taps on
   // mobile, small enough to keep the header compact).
@@ -59,6 +81,14 @@ export function Header({ crewCode, honorific, onLogout, offline, onReconnected }
           </button>
         )}
 
+        <button
+          onClick={cycleTheme}
+          aria-label={MODE_LABEL[themeMode]}
+          title={MODE_LABEL[themeMode]}
+          className={iconBtn + ' hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-950/30'}
+        >
+          <ThemeIcon className="w-4 h-4" strokeWidth={2.2} />
+        </button>
         <button
           onClick={() => setShowSettings(true)}
           aria-label="تنظیمات"

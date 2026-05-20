@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Class-based dark mode. Tailwind v4 defaults to the `prefers-color-scheme`
+   media query; this override makes every `dark:` utility also fire when the
+   `dark` class is present on <html> (set by lib/theme.ts), so the user can
+   manually toggle the theme via the header button. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* IranSans — primary body font (highly legible at small sizes for Persian UI) */
 @font-face { font-family: "IRANSans"; src: url("/fonts/IRANSansWeb_UltraLight.woff2") format("woff2"); font-weight: 200; font-style: normal; font-display: swap; }
 @font-face { font-family: "IRANSans"; src: url("/fonts/IRANSansWeb_Light.woff2") format("woff2");      font-weight: 300; font-style: normal; font-display: swap; }
@@ -71,16 +77,14 @@ body {
   font-feature-settings: "tnum" 1;
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    background:
-      radial-gradient(1100px circle at 0% 0%,    rgba(16,185,129,0.12), transparent 50%),
-      radial-gradient(1100px circle at 100% 0%,  rgba(168,85,247,0.10),  transparent 50%),
-      radial-gradient(900px circle at 50% 100%,  rgba(245,158,11,0.08),  transparent 55%),
-      linear-gradient(180deg, #07101A 0%, #04080F 100%);
-    background-attachment: fixed;
-    color: #E2E8F0;
-  }
+.dark body {
+  background:
+    radial-gradient(1100px circle at 0% 0%,    rgba(16,185,129,0.12), transparent 50%),
+    radial-gradient(1100px circle at 100% 0%,  rgba(168,85,247,0.10),  transparent 50%),
+    radial-gradient(900px circle at 50% 100%,  rgba(245,158,11,0.08),  transparent 55%),
+    linear-gradient(180deg, #07101A 0%, #04080F 100%);
+  background-attachment: fixed;
+  color: #E2E8F0;
 }
 
 button, input, select, textarea { font: inherit; color: inherit; }
@@ -102,23 +106,19 @@ input[type="number"] { -moz-appearance: textfield; }
   border: 1px solid rgba(15, 23, 42, 0.06);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 24px -12px rgba(15, 23, 42, 0.08);
 }
-@media (prefers-color-scheme: dark) {
-  .surface {
-    background-color: #111827;
-    border-color: rgba(255, 255, 255, 0.06);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.4), 0 12px 24px -12px rgba(0,0,0,0.6);
-  }
+.dark .surface {
+  background-color: #111827;
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.4), 0 12px 24px -12px rgba(0,0,0,0.6);
 }
 
 .surface-muted {
   background-color: rgba(248, 250, 252, 0.6);
   border: 1px solid rgba(15, 23, 42, 0.06);
 }
-@media (prefers-color-scheme: dark) {
-  .surface-muted {
-    background-color: rgba(17, 24, 39, 0.6);
-    border-color: rgba(255, 255, 255, 0.06);
-  }
+.dark .surface-muted {
+  background-color: rgba(17, 24, 39, 0.6);
+  border-color: rgba(255, 255, 255, 0.06);
 }
 
 @keyframes rise {
@@ -228,14 +228,12 @@ input[type="number"] { -moz-appearance: textfield; }
     0 12px 40px -16px rgba(2,44,34,0.25),
     0 4px 12px -6px rgba(15,23,42,0.08);
 }
-@media (prefers-color-scheme: dark) {
-  .glass {
-    background: rgba(17,24,39,0.55);
-    border-color: rgba(255,255,255,0.08);
-    box-shadow:
-      0 1px 0 rgba(255,255,255,0.06) inset,
-      0 18px 44px -16px rgba(0,0,0,0.7);
-  }
+.dark .glass {
+  background: rgba(17,24,39,0.55);
+  border-color: rgba(255,255,255,0.08);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.06) inset,
+    0 18px 44px -16px rgba(0,0,0,0.7);
 }
 
 /* depth pop for flight cards */
@@ -245,12 +243,10 @@ input[type="number"] { -moz-appearance: textfield; }
     0 10px 30px -10px rgba(6,95,70,0.35),
     0 4px 14px -6px rgba(6,95,70,0.15);
 }
-@media (prefers-color-scheme: dark) {
-  .depth-flight {
-    box-shadow:
-      0 1px 0 rgba(255,255,255,0.05) inset,
-      0 18px 38px -14px rgba(0,0,0,0.7);
-  }
+.dark .depth-flight {
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.05) inset,
+    0 18px 38px -14px rgba(0,0,0,0.7);
 }
 
 /* spring entrance */
@@ -302,15 +298,13 @@ input[type="number"] { -moz-appearance: textfield; }
   padding: 4px;
 }
 
-@media (prefers-color-scheme: dark) {
-  .ircrew-cal .rmdp-arrow { border-color: rgb(148 163 184); }
-  .ircrew-cal .rmdp-arrow-container:hover .rmdp-arrow { border-color: var(--color-brand-400); }
-  .ircrew-cal .rmdp-week-day { color: rgb(100 116 139); }
-  .ircrew-cal .rmdp-day { color: rgb(226 232 240); }
-  .ircrew-cal .rmdp-day.rmdp-deactive, .ircrew-cal .rmdp-day.rmdp-disabled { color: rgb(71 85 105); }
-  .ircrew-cal .rmdp-day.rmdp-today span { color: var(--color-brand-400) !important; }
-  .ircrew-cal .rmdp-day:not(.rmdp-disabled):not(.rmdp-day-hidden) span:hover {
-    background-color: rgba(16, 185, 129, 0.16) !important;
-    color: var(--color-brand-300) !important;
-  }
+.dark .ircrew-cal .rmdp-arrow { border-color: rgb(148 163 184); }
+.dark .ircrew-cal .rmdp-arrow-container:hover .rmdp-arrow { border-color: var(--color-brand-400); }
+.dark .ircrew-cal .rmdp-week-day { color: rgb(100 116 139); }
+.dark .ircrew-cal .rmdp-day { color: rgb(226 232 240); }
+.dark .ircrew-cal .rmdp-day.rmdp-deactive, .dark .ircrew-cal .rmdp-day.rmdp-disabled { color: rgb(71 85 105); }
+.dark .ircrew-cal .rmdp-day.rmdp-today span { color: var(--color-brand-400) !important; }
+.dark .ircrew-cal .rmdp-day:not(.rmdp-disabled):not(.rmdp-day-hidden) span:hover {
+  background-color: rgba(16, 185, 129, 0.16) !important;
+  color: var(--color-brand-300) !important;
 }

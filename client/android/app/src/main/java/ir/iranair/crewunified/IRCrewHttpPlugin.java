@@ -50,6 +50,7 @@ import java.util.concurrent.TimeUnit;
 public class IRCrewHttpPlugin extends Plugin {
 
     private OkHttpClient client;
+    private ConcurrentHashMap<String, List<Cookie>> cookieStore;
 
     @Override
     public void load() {
@@ -75,13 +76,14 @@ public class IRCrewHttpPlugin extends Plugin {
             // which is exactly what happens on the FlightCrew.aspx GET after
             // the Login.aspx 302 redirect — and that killed .ASPXAUTH right
             // after we got it.
-            final ConcurrentHashMap<String, List<Cookie>> cookieStore = new ConcurrentHashMap<>();
+            cookieStore = new ConcurrentHashMap<>();
+            final ConcurrentHashMap<String, List<Cookie>> cookieStoreRef = cookieStore;
             CookieJar cookieJar = new CookieJar() {
                 @Override
                 public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
                     if (cookies == null || cookies.isEmpty()) return; // don't wipe
                     String host = url.host();
-                    List<Cookie> existing = cookieStore.get(host);
+                    List<Cookie> existing = cookieStoreRef.get(host);
                     if (existing == null) existing = new ArrayList<Cookie>();
                     long now = System.currentTimeMillis();
                     List<Cookie> merged = new ArrayList<Cookie>();
@@ -102,11 +104,11 @@ public class IRCrewHttpPlugin extends Plugin {
                     for (Cookie c : cookies) {
                         if (c.expiresAt() > now) merged.add(c);
                     }
-                    cookieStore.put(host, merged);
+                    cookieStoreRef.put(host, merged);
                 }
                 @Override
                 public List<Cookie> loadForRequest(HttpUrl url) {
-                    List<Cookie> cookies = cookieStore.get(url.host());
+                    List<Cookie> cookies = cookieStoreRef.get(url.host());
                     if (cookies == null) return new ArrayList<Cookie>();
                     long now = System.currentTimeMillis();
                     List<Cookie> alive = new ArrayList<Cookie>();
@@ -202,5 +204,26 @@ public class IRCrewHttpPlugin extends Plugin {
         } catch (Exception e) {
             call.reject("HTTP request failed: " + (e.getMessage() == null ? "unknown" : e.getMessage()), e);
         }
+    }
+
+    /**
+     * Wipe the cookie jar for a specific host (or all hosts when "host" is
+     * omitted). The Node server uses a fresh-session-per-endpoint pattern
+     * (withFreshSession in server/index.js); calling this before each ASP.NET
+     * login on the JS side keeps mobile behaviour matched.
+     */
+    @PluginMethod
+    public void clearCookies(PluginCall call) {
+        if (cookieStore == null) {
+            call.resolve();
+            return;
+        }
+        String host = call.getString("host");
+        if (host == null || host.isEmpty()) {
+            cookieStore.clear();
+        } else {
+            cookieStore.remove(host);
+        }
+        call.resolve();
     }
 }

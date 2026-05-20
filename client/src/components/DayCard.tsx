@@ -293,28 +293,30 @@ function FlightRoute({
         </span>
       </div>
 
-      <div className="flex items-center gap-4" dir="ltr">
-        <div className="text-center flex-1">
-          <div className="text-[24px] font-black tracking-[0.22em] tabular-nums leading-none pr-[0.22em] text-gradient-brand">
+      <div className="flex items-center gap-2 min-w-0" dir="ltr">
+        <div className="text-center shrink-0">
+          <div className="text-[22px] font-black tracking-[0.18em] tabular-nums leading-none pr-[0.18em] text-gradient-brand">
             {depCode || '—'}
           </div>
-          <div className="text-[12px] opacity-80 font-bold tabular-nums tracking-[0.18em] mt-2 pr-[0.18em]">
+          <div className="text-[11.5px] opacity-80 font-bold tabular-nums tracking-[0.16em] mt-1.5 pr-[0.16em]">
             {depTime}
           </div>
         </div>
-        <div className="flex items-center flex-[1.5] gap-1.5 min-w-0 relative">
-          <span className="flex-1 border-t-2 border-dashed border-brand-400/50 dark:border-brand-600/50" />
-          <div className="relative">
+        {/* Min-w-0 + shrinking dashed segments so the route bar never overflows
+            its parent on narrow screens. The plane icon stays at a fixed size. */}
+        <div className="flex items-center gap-1 flex-1 min-w-0 relative px-1">
+          <span className="flex-1 min-w-0 border-t-2 border-dashed border-brand-400/50 dark:border-brand-600/50" />
+          <div className="relative shrink-0">
             <div className="absolute inset-0 bg-brand-500/30 rounded-full blur-md" />
-            <Plane className="relative w-5 h-5 text-brand-600 dark:text-brand-400 drop-shadow" strokeWidth={2.6} />
+            <Plane className="relative w-4 h-4 text-brand-600 dark:text-brand-400 drop-shadow" strokeWidth={2.6} />
           </div>
-          <span className="flex-1 border-t-2 border-dashed border-brand-400/50 dark:border-brand-600/50" />
+          <span className="flex-1 min-w-0 border-t-2 border-dashed border-brand-400/50 dark:border-brand-600/50" />
         </div>
-        <div className="text-center flex-1">
-          <div className="text-[24px] font-black tracking-[0.22em] tabular-nums leading-none pr-[0.22em] text-gradient-brand">
+        <div className="text-center shrink-0">
+          <div className="text-[22px] font-black tracking-[0.18em] tabular-nums leading-none pr-[0.18em] text-gradient-brand">
             {arrCode || '—'}
           </div>
-          <div className="text-[12px] opacity-80 font-bold tabular-nums tracking-[0.18em] mt-2 pr-[0.18em]">
+          <div className="text-[11.5px] opacity-80 font-bold tabular-nums tracking-[0.16em] mt-1.5 pr-[0.16em]">
             {arrTime}
           </div>
         </div>

@@ -32,9 +32,17 @@ interface IRCrewHttpPlugin {
     headers?: Record<string, string>;
     data?: string;
   }): Promise<{ status: number; data: string; url?: string }>;
+  clearCookies(opts?: { host?: string }): Promise<void>;
 }
 const IRCrewHttp = registerPlugin<IRCrewHttpPlugin>('IRCrewHttp');
 const HAS_NATIVE_PLUGIN = Capacitor.getPlatform() === 'android';
+
+/** Wipe the cookie jar so subsequent calls start a fresh session, matching
+ *  the Node server's withFreshSession pattern. No-op on web / iOS. */
+async function resetSession(): Promise<void> {
+  if (!HAS_NATIVE_PLUGIN) return;
+  try { await IRCrewHttp.clearCookies({ host: 'crew.iranair.com' }); } catch { /* ignore */ }
+}
 
 const BASE = 'https://crew.iranair.com';
 // Masquerade as desktop Chrome so the upstream serves the desktop layout
@@ -328,6 +336,7 @@ function matchFlightRow(row: FlightRow, wanted: string): boolean {
 // ────────────────────────────────────────────────────────────────────────────
 
 export async function nativeLogin(creds: Credentials): Promise<{ ok: true; periods: string[] }> {
+  await resetSession();
   const html = await postForm(`${BASE}/CrewDelivery.dll`, {
     Code: creds.code, Pass: creds.pass, TableType: 'DETAIL',
   });
@@ -338,6 +347,7 @@ export async function nativeLogin(creds: Credentials): Promise<{ ok: true; perio
 }
 
 export async function nativeRoster(creds: Credentials, period: string): Promise<RosterResponse> {
+  await resetSession();
   // Step 1 is required to seed the cookie/session; step 2 returns the schedule.
   await postForm(`${BASE}/CrewDelivery.dll`, {
     Code: creds.code, Pass: creds.pass, TableType: 'DETAIL',
@@ -350,6 +360,7 @@ export async function nativeRoster(creds: Credentials, period: string): Promise<
 }
 
 export async function nativeFlightsOnDate(creds: Credentials, date: string): Promise<FlightsResponse> {
+  await resetSession();
   const home = await aspxLogin(creds.code, creds.pass);
   let state = extractAspxState(home);
   const offset = dateToOffset(date);
@@ -369,6 +380,7 @@ export async function nativeFlightsOnDate(creds: Credentials, date: string): Pro
 export async function nativeCrewOnFlight(
   creds: Credentials, date: string, eventTarget: string, eventArgument: string,
 ): Promise<CrewResponse> {
+  await resetSession();
   const home = await aspxLogin(creds.code, creds.pass);
   let state = extractAspxState(home);
   const offset = dateToOffset(date);
@@ -382,6 +394,7 @@ export async function nativeCrewOnFlight(
 export async function nativeCrewByFlight(
   creds: Credentials, date: string, fltNo: string,
 ): Promise<CrewResponse> {
+  await resetSession();
   const home = await aspxLogin(creds.code, creds.pass);
   let state = extractAspxState(home);
   const offset = dateToOffset(date);
