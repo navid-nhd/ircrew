@@ -9,11 +9,32 @@
 // cheerio. The parsing logic is re-implemented with the WebView's built-in
 // DOMParser so we don't ship cheerio to the phone.
 
-import { CapacitorHttp } from '@capacitor/core';
+import { CapacitorHttp, Capacitor, registerPlugin } from '@capacitor/core';
 import type {
   Credentials, RosterResponse, RosterRow,
   FlightsResponse, FlightRow, CrewResponse, CrewRow, DutyKind,
 } from './types';
+
+// ────────────────────────────────────────────────────────────────────────────
+// Custom Android HTTP plugin. crew.iranair.com uses a TLS chain rooted at an
+// Iranian CA not in Android's default trust store, AND the server does not
+// present the full intermediate chain — so OkHttp throws
+//   "Trust anchor for certification path not found"
+// when used directly via CapacitorHttp. Our native plugin (defined in
+// android/.../IRCrewHttpPlugin.java) uses an OkHttp client with relaxed cert
+// checks scoped strictly to *.iranair.com. On iOS / web the plugin is unset
+// and we fall back to CapacitorHttp / fetch.
+// ────────────────────────────────────────────────────────────────────────────
+interface IRCrewHttpPlugin {
+  request(opts: {
+    url: string;
+    method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    headers?: Record<string, string>;
+    data?: string;
+  }): Promise<{ status: number; data: string; url?: string }>;
+}
+const IRCrewHttp = registerPlugin<IRCrewHttpPlugin>('IRCrewHttp');
+const HAS_NATIVE_PLUGIN = Capacitor.getPlatform() === 'android';
 
 const BASE = 'https://crew.iranair.com';
 const UA = 'Mozilla/5.0 (Linux; Android 12; IRCrew) AppleWebKit/537.36';
@@ -44,24 +65,34 @@ const isString = (x: unknown): x is string => typeof x === 'string';
 // attempts with backoff covers nearly every transient failure we see in
 // practice — the server-side code does the same.
 // ────────────────────────────────────────────────────────────────────────────
+async function nativePost(url: string, headers: Record<string, string>, data: string): Promise<string> {
+  if (HAS_NATIVE_PLUGIN) {
+    const res = await IRCrewHttp.request({ url, method: 'POST', headers, data });
+    return res.data ?? '';
+  }
+  const res = await CapacitorHttp.post({ url, headers, data, responseType: 'text' });
+  return isString(res.data) ? res.data : String(res.data ?? '');
+}
+
+async function nativeGet(url: string, headers: Record<string, string>): Promise<string> {
+  if (HAS_NATIVE_PLUGIN) {
+    const res = await IRCrewHttp.request({ url, method: 'GET', headers });
+    return res.data ?? '';
+  }
+  const res = await CapacitorHttp.get({ url, headers, responseType: 'text' });
+  return isString(res.data) ? res.data : String(res.data ?? '');
+}
+
 async function postForm(url: string, body: Record<string, string>): Promise<string> {
   let lastErr: unknown = null;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const res = await CapacitorHttp.post({
-        url,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': UA,
-          Accept: '*/*',
-          'Accept-Language': 'en-US,en;q=0.9',
-        },
-        data: formBody(body),
-        // CapacitorHttp infers response type from Content-Type; force text so
-        // ASP.NET HTML is returned as a string we can parse with DOMParser.
-        responseType: 'text',
-      });
-      return isString(res.data) ? res.data : String(res.data ?? '');
+      return await nativePost(url, {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': UA,
+        Accept: '*/*',
+        'Accept-Language': 'en-US,en;q=0.9',
+      }, formBody(body));
     } catch (e) {
       lastErr = e;
       if (attempt < 3) await sleep(700 * attempt + Math.random() * 300);
@@ -74,12 +105,7 @@ async function getHtml(url: string): Promise<string> {
   let lastErr: unknown = null;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const res = await CapacitorHttp.get({
-        url,
-        headers: { 'User-Agent': UA, Accept: 'text/html,application/xhtml+xml' },
-        responseType: 'text',
-      });
-      return isString(res.data) ? res.data : String(res.data ?? '');
+      return await nativeGet(url, { 'User-Agent': UA, Accept: 'text/html,application/xhtml+xml' });
     } catch (e) {
       lastErr = e;
       if (attempt < 3) await sleep(700 * attempt + Math.random() * 300);
