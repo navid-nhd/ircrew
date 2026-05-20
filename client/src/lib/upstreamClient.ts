@@ -312,30 +312,23 @@ const monthStartOffset = (yyyyMmDd: string): number => {
   return Math.round((Date.UTC(y, m - 1, 1) - EPOCH) / 86_400_000);
 };
 
-/** Select a date on the FlightCrew.aspx calendar.
- *
- *  ASP.NET Calendar's EnableEventValidation only registers postback arguments
- *  for what was RENDERED on the current page — that's the currently-visible
- *  month's day cells, PLUS exactly TWO navigation args (V<startOfPrevMonth>
- *  and V<startOfNextMonth>). You cannot jump from May to February in one
- *  postback; the V argument for February is not registered yet.
- *
- *  So to reach a target month N months away from today, we have to walk
- *  one month at a time, each step issuing the V postback for the next-step
- *  month start, then finally click the actual day in the target month. */
-async function aspxSelectCalendarDate(state: AspxState, yyyyMmDd: string): Promise<AspxState> {
+/** Walk the calendar from a known current month to the target month, one
+ *  V postback per step (the only navigation args ASP.NET EnableEventValidation
+ *  registers per render), then click the target day. Returns the new state
+ *  AND the YYYY-MM of the now-visible month so the caller can update its
+ *  session cache. */
+async function aspxSelectCalendarDate(
+  state: AspxState,
+  yyyyMmDd: string,
+  fromMonth: string,
+): Promise<{ state: AspxState; nowVisibleMonth: string }> {
   const dayOffset = dateToOffset(yyyyMmDd);
   const [targetYear, targetMonth] = yyyyMmDd.split('-').map(Number);
-
-  // Start month: today (FlightCrew.aspx defaults the calendar to today right
-  // after a fresh login).
-  const now = new Date();
-  let curYear = now.getFullYear();
-  let curMonth = now.getMonth() + 1;
+  const [curYearStr, curMonthStr] = fromMonth.split('-');
+  let curYear = Number(curYearStr);
+  let curMonth = Number(curMonthStr);
 
   let s = state;
-  // Hard cap on steps so a buggy date never sends us into an infinite walk —
-  // 24 months covers everything the upstream actually retains.
   const MAX_STEPS = 24;
   let steps = 0;
   while ((curYear !== targetYear || curMonth !== targetMonth) && steps < MAX_STEPS) {
@@ -355,11 +348,58 @@ async function aspxSelectCalendarDate(state: AspxState, yyyyMmDd: string): Promi
     steps += 1;
   }
 
-  // Now click the actual day. The target month is rendered and its day cells
-  // are registered.
   s = await aspxPostback(s, 'CalendarDate', String(dayOffset));
-  return s;
+  return { state: s, nowVisibleMonth: `${curYear}-${String(curMonth).padStart(2, '0')}` };
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// In-memory session cache. We log into Iran Air's FlightCrew.aspx once per
+// session and reuse the .ASPXAUTH cookie + the post-login VIEWSTATE for ~10
+// minutes. Without this, every date change rebuilt the entire session — a
+// 6-month-old date pick used to take 8-15 seconds; cached it's ~1.5 seconds.
+// ────────────────────────────────────────────────────────────────────────────
+interface FlightCrewSession {
+  state: AspxState;
+  visibleMonth: string;   // YYYY-MM the calendar is currently rendering
+  expiresAt: number;
+  credsHash: string;      // bound to credentials so a re-login swaps it
+}
+let flightCrewSession: FlightCrewSession | null = null;
+const SESSION_TTL = 10 * 60 * 1000;
+
+const hashCreds = (c: Credentials): string => `${c.code}::${c.pass.length}`;
+const currentLocalMonth = (): string => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+
+/** Get a valid FlightCrew session, performing a fresh login if needed. */
+async function obtainFlightCrewSession(creds: Credentials): Promise<FlightCrewSession> {
+  const wantHash = hashCreds(creds);
+  if (
+    flightCrewSession &&
+    flightCrewSession.expiresAt > Date.now() &&
+    flightCrewSession.credsHash === wantHash
+  ) {
+    return flightCrewSession;
+  }
+  await resetSession();
+  const home = await aspxLogin(creds.code, creds.pass);
+  flightCrewSession = {
+    state: extractAspxState(home),
+    visibleMonth: currentLocalMonth(),
+    expiresAt: Date.now() + SESSION_TTL,
+    credsHash: wantHash,
+  };
+  return flightCrewSession;
+}
+
+function dropFlightCrewSession(): void { flightCrewSession = null; }
+
+/** Public reset hook — called by the auth layer when credentials change so a
+ *  new account's first request doesn't accidentally hit the previous user's
+ *  cached session state. */
+export function resetUpstreamSession(): void { dropFlightCrewSession(); }
 
 function parseGridById(html: string, id: string): { headers: string[]; rows: Array<Record<string, string>>; rawTrs: HTMLTableRowElement[] } {
   const doc = parseHtml(html);
@@ -464,10 +504,27 @@ export async function nativeRoster(creds: Credentials, period: string): Promise<
 }
 
 export async function nativeFlightsOnDate(creds: Credentials, date: string): Promise<FlightsResponse> {
-  await resetSession();
-  const home = await aspxLogin(creds.code, creds.pass);
-  const initial = extractAspxState(home);
-  const state = await aspxSelectCalendarDate(initial, date);
+  // Use cached session when possible — falls back to a full re-login if the
+  // first attempt returns no GridViewFlt (session expired, cookies stale, …).
+  const runOnce = async () => {
+    const session = await obtainFlightCrewSession(creds);
+    const { state, nowVisibleMonth } = await aspxSelectCalendarDate(
+      session.state, date, session.visibleMonth,
+    );
+    // Persist the navigated state so the NEXT date change can walk from this
+    // visible month instead of paying the full login again.
+    session.state = state;
+    session.visibleMonth = nowVisibleMonth;
+    return state;
+  };
+  let state = await runOnce();
+  if (!/GridViewFlt/i.test(state.html)) {
+    if (/Login1\$LoginButton/i.test(state.html)) {
+      // Session legitimately died — clear cache and retry exactly once.
+      dropFlightCrewSession();
+      state = await runOnce();
+    }
+  }
   if (!/GridViewFlt/i.test(state.html)) {
     if (/Login1\$LoginButton/i.test(state.html)) {
       throw new UpstreamAuthError('نشست شما منقضی شده. لطفاً خارج و دوباره وارد شوید.');
@@ -481,11 +538,15 @@ export async function nativeFlightsOnDate(creds: Credentials, date: string): Pro
 export async function nativeCrewOnFlight(
   creds: Credentials, date: string, eventTarget: string, eventArgument: string,
 ): Promise<CrewResponse> {
-  await resetSession();
-  const home = await aspxLogin(creds.code, creds.pass);
-  const initial = extractAspxState(home);
-  let state = await aspxSelectCalendarDate(initial, date);
-  state = await aspxPostback(state, eventTarget, eventArgument || '');
+  const session = await obtainFlightCrewSession(creds);
+  const { state: stateAtDate, nowVisibleMonth } = await aspxSelectCalendarDate(
+    session.state, date, session.visibleMonth,
+  );
+  session.state = stateAtDate;
+  session.visibleMonth = nowVisibleMonth;
+  // Postback for the selected flight row.
+  const state = await aspxPostback(stateAtDate, eventTarget, eventArgument || '');
+  session.state = state;
   const cg = parseCrewGrid(state.html);
   const fg = parseFlightGrid(state.html);
   return { ok: true, date, headers: cg.headers, crew: cg.crew, flights: fg.flights };
@@ -494,10 +555,22 @@ export async function nativeCrewOnFlight(
 export async function nativeCrewByFlight(
   creds: Credentials, date: string, fltNo: string,
 ): Promise<CrewResponse> {
-  await resetSession();
-  const home = await aspxLogin(creds.code, creds.pass);
-  const initial = extractAspxState(home);
-  let state = await aspxSelectCalendarDate(initial, date);
+  const session = await obtainFlightCrewSession(creds);
+  const result = await aspxSelectCalendarDate(session.state, date, session.visibleMonth);
+  session.state = result.state;
+  session.visibleMonth = result.nowVisibleMonth;
+  let state = result.state;
+  if (!/GridViewFlt/i.test(state.html)) {
+    if (/Login1\$LoginButton/i.test(state.html)) {
+      // Stale session — drop cache, retry once.
+      dropFlightCrewSession();
+      const fresh = await obtainFlightCrewSession(creds);
+      const r2 = await aspxSelectCalendarDate(fresh.state, date, fresh.visibleMonth);
+      fresh.state = r2.state;
+      fresh.visibleMonth = r2.nowVisibleMonth;
+      state = r2.state;
+    }
+  }
   if (!/GridViewFlt/i.test(state.html)) {
     if (/Login1\$LoginButton/i.test(state.html)) {
       throw new UpstreamAuthError('نشست شما منقضی شده. خارج و دوباره وارد شوید.');
@@ -516,6 +589,8 @@ export async function nativeCrewByFlight(
     );
   }
   state = await aspxPostback(state, match._eventTarget, match._eventArgument || '');
+  // Keep cached session current after the row-select postback.
+  if (flightCrewSession) flightCrewSession.state = state;
   const cg = parseCrewGrid(state.html);
   return { ok: true, date, headers: cg.headers, crew: cg.crew, flights: fg.flights };
 }

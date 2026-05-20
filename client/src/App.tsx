@@ -10,6 +10,7 @@ import { OfflineConnectPrompt } from './components/OfflineConnectPrompt';
 import { StatsTab } from './components/StatsTab';
 import { ActivationScreen } from './components/ActivationScreen';
 import { activationStore } from './lib/activation';
+import { resetUpstreamSession } from './lib/upstreamClient';
 import { honorificFromPosition } from './lib/positions';
 import { profileStore } from './lib/profile';
 
@@ -46,6 +47,7 @@ export function App() {
 
   const onLogout = () => {
     localStorage.removeItem(STORE_KEY);
+    resetUpstreamSession();   // dump the in-memory native session cache too
     setCreds(null);
     setTab('roster');
   };

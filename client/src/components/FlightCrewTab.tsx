@@ -33,23 +33,27 @@ export function FlightCrewTab({ creds }: Props) {
   // Monotonic sequence so an out-of-order resolve (slow first request finishing
   // after a fast second one) cannot overwrite the visible state with stale data.
   const seqRef = useRef(0);
+  // Last-known flight count, kept across loads so the toolbar shows
+  // "(۸ … در حال به‌روزرسانی)" instead of the count vanishing.
+  const [lastCount, setLastCount] = useState<number | null>(null);
 
   useEffect(() => {
     const mySeq = ++seqRef.current;
     const ctrl = new AbortController();
     (async () => {
       setLoadingFlights(true); setErr(null);
-      // Wipe per-flight crew state AND the visible flight list — the new date's
-      // row indices reference a different set of flights, and we don't want the
-      // user to see the previous date's list lingering under an error message.
+      // Per-flight crew state only — keep the previous date's flight LIST
+      // visible (faded) so the toolbar doesn't blink. We swap to the new list
+      // when the response lands. If the user clicks a row before that, it's
+      // a no-op because expandedIdx + crewMap were cleared.
       setExpandedIdx(null); setCrewMap({}); setStaleNote(null);
-      setFlights(null);
       try {
         const r = await api.flightsOnDate(creds, date, {
           signal: ctrl.signal, forceFresh: refreshTick > 0,
         });
         if (mySeq !== seqRef.current) return;
         setFlights(r.data);
+        setLastCount(r.data.flights.length);
         if (r.stale) setStaleNote({ when: r.storedAt ?? Date.now() });
       } catch (e) {
         if (mySeq !== seqRef.current) return;
@@ -113,17 +117,28 @@ export function FlightCrewTab({ creds }: Props) {
       </button>
 
       <div className="flex items-center gap-2 mb-3">
-        <div className="flex items-center gap-1.5 flex-1">
-          <Plane className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
-          <h2 className="text-[12px] font-extrabold opacity-80">پروازهای این روز</h2>
-          {flights && <span className="text-[12px] opacity-60 tabular-nums">({flights.flights.length})</span>}
+        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          <Plane className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400 shrink-0" />
+          <h2 className="text-[12px] font-extrabold opacity-90">پروازهای این روز</h2>
+          {/* Always show a count chip — uses last-known number during refresh
+              and includes a tiny "در حال…" tag so the toolbar never blinks. */}
+          {(flights || lastCount != null) && (
+            <span className="inline-flex items-center gap-1 text-[11px] tabular-nums">
+              <span className="opacity-70">
+                ({flights ? flights.flights.length : lastCount})
+              </span>
+              {loadingFlights && (
+                <span className="text-[10px] opacity-60 animate-pulse">· به‌روزرسانی</span>
+              )}
+            </span>
+          )}
         </div>
         <button
           onClick={() => setRefreshTick((t) => t + 1)}
           aria-label="بازخوانی"
-          className={cn('w-9 h-9 grid place-items-center rounded-xl surface active:scale-95 transition-all', loadingFlights && 'opacity-60')}
+          className="w-9 h-9 grid place-items-center rounded-xl surface active:scale-95 transition-transform"
         >
-          <RefreshCw className={cn('w-3.5 h-3.5', loadingFlights && 'animate-spin')} />
+          <RefreshCw className={cn('w-3.5 h-3.5', loadingFlights && 'animate-spin text-brand-600 dark:text-brand-400')} />
         </button>
       </div>
 
@@ -141,17 +156,25 @@ export function FlightCrewTab({ creds }: Props) {
         </div>
       )}
 
-      {loadingFlights ? (
+      {loadingFlights && !flights && (
         <div>
           <div className="space-y-2 mb-3">
             {[0,1,2].map((i) => <div key={i} className="skeleton h-[72px]" />)}
           </div>
-          <div className="text-[11px] text-center opacity-60 font-semibold">
-            در حال دریافت لیست پروازها از سرور Iran Air…
+          <div className="text-[11px] text-center opacity-65 font-semibold flex items-center justify-center gap-1.5">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            در حال دریافت برای <span className="tabular-nums font-bold">{wdFa} {jal.jd}</span>…
           </div>
         </div>
-      ) : flights && flights.flights.length > 0 ? (
-        <div className="space-y-2.5">
+      )}
+      {loadingFlights && flights && (
+        <div className="text-[11px] text-center opacity-65 font-semibold flex items-center justify-center gap-1.5 mb-2">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          در حال دریافت لیست پروازهای <span className="tabular-nums font-bold">{wdFa} {jal.jd}</span>…
+        </div>
+      )}
+      {flights && flights.flights.length > 0 ? (
+        <div className={cn('space-y-2.5 transition-opacity', loadingFlights && 'opacity-50 pointer-events-none')}>
           {flights.flights.map((f) => {
             const isOpen = expandedIdx === f._rowIndex;
             const c = crewMap[f._rowIndex];
