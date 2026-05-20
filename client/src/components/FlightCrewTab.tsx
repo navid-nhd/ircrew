@@ -49,9 +49,11 @@ export function FlightCrewTab({ creds }: Props) {
     const ctrl = new AbortController();
     (async () => {
       setLoadingFlights(true); setErr(null);
-      // Wipe per-flight crew state — the new date's row indices reference a
-      // different set of flights, so old entries would render against wrong rows.
+      // Wipe per-flight crew state AND the visible flight list — the new date's
+      // row indices reference a different set of flights, and we don't want the
+      // user to see the previous date's list lingering under an error message.
       setExpandedIdx(null); setCrewMap({}); setStaleNote(null);
+      setFlights(null);
       try {
         const r = await api.flightsOnDate(creds, date, {
           signal: ctrl.signal, forceFresh: refreshTick > 0,
@@ -272,17 +274,18 @@ function DatePickerSheet({ iso, onPick, onClose }: { iso: string; onPick: (iso: 
   const value = isoToPersianDateObject(iso);
   return (
     <div className="fixed inset-0 z-40 grid items-end" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-rise" />
+      <div className="absolute inset-0 bg-black/55 backdrop-blur-sm animate-rise" />
       <div
-        className="relative surface rounded-t-3xl max-w-screen-sm w-full mx-auto pb-safe animate-rise"
+        className="relative surface rounded-t-3xl max-w-screen-sm w-full mx-auto pb-safe animate-rise text-slate-900 dark:text-slate-100"
         onClick={(e) => e.stopPropagation()}
+        dir="rtl"
       >
         <div className="px-5 pt-4 pb-2">
           <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-600 mx-auto mb-3" />
           <div className="text-[15px] font-extrabold">انتخاب تاریخ</div>
-          <div className="text-[12px] opacity-60">تقویم شمسی · ضربه بزنید روی روز</div>
+          <div className="text-[11.5px] opacity-65">تقویم شمسی — ضربه بزنید روی روز</div>
         </div>
-        <div className="px-3 pb-4 grid place-items-center" dir="rtl">
+        <div className="px-2 pb-3 flex justify-center" dir="rtl">
           <Calendar
             value={value}
             calendar={persian}
@@ -292,7 +295,7 @@ function DatePickerSheet({ iso, onPick, onClose }: { iso: string; onPick: (iso: 
               if (!d || Array.isArray(d)) return;
               onPick(persianDateObjectToIso(d));
             }}
-            className="ircrew-cal"
+            className="ircrew-cal ircrew-cal-mobile"
           />
         </div>
         <div className="px-5 pb-3 flex gap-2">

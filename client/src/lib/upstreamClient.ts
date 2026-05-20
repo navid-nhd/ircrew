@@ -297,6 +297,32 @@ const dateToOffset = (yyyyMmDd: string): number => {
   return Math.round((Date.UTC(y, m - 1, d) - EPOCH) / 86_400_000);
 };
 
+/** Offset of the 1st of the same calendar month as the given date. Used to
+ *  send a "V<startOffset>" navigation postback before clicking a day cell,
+ *  so the calendar control renders the target month and EventValidation
+ *  accepts the day argument. */
+const monthStartOffset = (yyyyMmDd: string): number => {
+  const [y, m] = yyyyMmDd.split('-').map(Number);
+  return Math.round((Date.UTC(y, m - 1, 1) - EPOCH) / 86_400_000);
+};
+
+/** Run the CalendarDate postback two-step: navigate to the target month first
+ *  (V<startOffset>), then select the actual day. Required when the requested
+ *  date is outside the calendar's currently-displayed month, since ASP.NET
+ *  Calendar's EnableEventValidation rejects any day-offset that wasn't
+ *  rendered in the original page grid. */
+async function aspxSelectCalendarDate(state: AspxState, yyyyMmDd: string): Promise<AspxState> {
+  const dayOffset = dateToOffset(yyyyMmDd);
+  const startOff = monthStartOffset(yyyyMmDd);
+  // Step 1: navigate the calendar to the target month (so the day cell exists
+  // in the rendered grid). The V prefix is ASP.NET Calendar's convention for
+  // "navigate to the month starting at this day offset".
+  let s = await aspxPostback(state, 'CalendarDate', `V${startOff}`);
+  // Step 2: now click the actual day inside that month.
+  s = await aspxPostback(s, 'CalendarDate', String(dayOffset));
+  return s;
+}
+
 function parseGridById(html: string, id: string): { headers: string[]; rows: Array<Record<string, string>>; rawTrs: HTMLTableRowElement[] } {
   const doc = parseHtml(html);
   const grid = doc.querySelector(`#${id}`);
@@ -402,9 +428,8 @@ export async function nativeRoster(creds: Credentials, period: string): Promise<
 export async function nativeFlightsOnDate(creds: Credentials, date: string): Promise<FlightsResponse> {
   await resetSession();
   const home = await aspxLogin(creds.code, creds.pass);
-  let state = extractAspxState(home);
-  const offset = dateToOffset(date);
-  state = await aspxPostback(state, 'CalendarDate', String(offset));
+  const initial = extractAspxState(home);
+  const state = await aspxSelectCalendarDate(initial, date);
   if (!/GridViewFlt/i.test(state.html)) {
     if (/Login1\$LoginButton/i.test(state.html)) {
       throw new UpstreamAuthError('نشست شما منقضی شده. لطفاً خارج و دوباره وارد شوید.');
@@ -420,9 +445,8 @@ export async function nativeCrewOnFlight(
 ): Promise<CrewResponse> {
   await resetSession();
   const home = await aspxLogin(creds.code, creds.pass);
-  let state = extractAspxState(home);
-  const offset = dateToOffset(date);
-  state = await aspxPostback(state, 'CalendarDate', String(offset));
+  const initial = extractAspxState(home);
+  let state = await aspxSelectCalendarDate(initial, date);
   state = await aspxPostback(state, eventTarget, eventArgument || '');
   const cg = parseCrewGrid(state.html);
   const fg = parseFlightGrid(state.html);
@@ -434,9 +458,8 @@ export async function nativeCrewByFlight(
 ): Promise<CrewResponse> {
   await resetSession();
   const home = await aspxLogin(creds.code, creds.pass);
-  let state = extractAspxState(home);
-  const offset = dateToOffset(date);
-  state = await aspxPostback(state, 'CalendarDate', String(offset));
+  const initial = extractAspxState(home);
+  let state = await aspxSelectCalendarDate(initial, date);
   if (!/GridViewFlt/i.test(state.html)) {
     if (/Login1\$LoginButton/i.test(state.html)) {
       throw new UpstreamAuthError('نشست شما منقضی شده. خارج و دوباره وارد شوید.');
