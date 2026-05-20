@@ -7,10 +7,11 @@ import { RosterTab } from './components/RosterTab';
 import { FlightCrewTab } from './components/FlightCrewTab';
 import { FtlTab } from './components/FtlTab';
 import { OfflineConnectPrompt } from './components/OfflineConnectPrompt';
+import { StatsTab } from './components/StatsTab';
 import { honorificFromPosition } from './lib/positions';
 import { profileStore } from './lib/profile';
 
-type Tab = 'roster' | 'flightcrew' | 'ftl';
+type Tab = 'roster' | 'flightcrew' | 'ftl' | 'stats';
 
 const STORE_KEY = 'ircrew.creds.v1';
 
@@ -78,6 +79,7 @@ export function App() {
             : <FlightCrewTab creds={creds} />
         )}
         {tab === 'ftl' && <FtlTab creds={creds} position={position} />}
+        {tab === 'stats' && <StatsTab creds={creds} />}
       </main>
       <BottomTabs current={tab} onChange={setTab} />
     </div>

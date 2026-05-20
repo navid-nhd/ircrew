@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import {
-  Sunrise, Sunset, Coffee, Plane, ShieldCheck, AlertTriangle, Plus, X,
+  Coffee, Plane, ShieldCheck, AlertTriangle, Plus, X,
   Clock, ChevronRight,
 } from 'lucide-react';
 import type { DutyEntry, ProposedFlight, RuleEngineResult } from '../ftl/rules/types';
@@ -134,28 +134,33 @@ export function AdjacentDuties({
   const sbyPrev = previewRest(previewBeforeSby);
 
   return (
-    <div className="ftl-scope-mobile space-y-3" dir="rtl">
-      <div className="surface rounded-2xl p-3 ring-1 ring-brand-500/10 shadow-md shadow-brand-900/5 animate-rise">
+    <div className="space-y-3 text-slate-900 dark:text-slate-100" dir="rtl">
+      {/* INTRO: what is this section + how to use it */}
+      <div className="surface rounded-2xl p-3.5 ring-1 ring-brand-500/15 shadow-md shadow-brand-900/5 animate-rise">
         <div className="flex items-center gap-2 mb-2.5">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-800 grid place-items-center shrink-0">
             <Clock className="w-4 h-4 text-white" strokeWidth={2.4} />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-extrabold leading-tight truncate">
+            <div className="text-[13.5px] font-extrabold leading-tight truncate">
               برنامه‌ریزی پیش از / پس از پرواز
             </div>
-            <div className="text-[11px] opacity-60 truncate">
+            <div className="text-[11px] opacity-65 truncate mt-0.5">
               {candidate.label || `کاندید #${toFaDigits(activeIndex + 1)}`} ·
               {' '}<span className="tabular-nums">{candidate.reportingTimeLocal.slice(0, 10)}</span>
             </div>
           </div>
         </div>
 
-        {/* Before */}
+        <div className="rounded-xl bg-brand-500/8 ring-1 ring-brand-500/20 px-3 py-2.5 mb-3 text-[11.5px] leading-relaxed text-slate-700 dark:text-slate-200">
+          <b className="text-brand-700 dark:text-brand-300">این بخش چه کاری می‌کند؟</b>
+          {' '}اگر می‌خواهی بدانی روز قبل یا بعد از این پرواز <b>تعطیل</b> یا <b>آماده‌باش</b> داشته باشی، آن را اضافه کن.
+          اپ تأثیرش بر <b>حداقل Rest قانونی</b> را همان لحظه نشان می‌دهد.
+        </div>
+
+        {/* Step 1 */}
+        <StepHeader n="۱" title="قبل از پرواز چه چیزی اضافه شود؟" hint="اختیاری — اگر روز قبل آزادی" />
         <SlotRow
-          icon={Sunrise}
-          title="قبل از پرواز"
-          subtitle="Pre-FDP attachment"
           active={{
             day_off: !!findAdj(history, activeIndex, 'day_off', 'before'),
             sbf:     !!findAdj(history, activeIndex, 'sbf',     'before'),
@@ -163,11 +168,11 @@ export function AdjacentDuties({
           onToggle={(k) => toggle(k, 'before')}
         />
 
-        {/* After */}
+        <div className="h-px bg-slate-100 dark:bg-slate-800 my-3" />
+
+        {/* Step 2 */}
+        <StepHeader n="۲" title="بعد از پرواز چه چیزی اضافه شود؟" hint="اختیاری — برای محاسبهٔ Rest روز بعد" />
         <SlotRow
-          icon={Sunset}
-          title="بعد از پرواز"
-          subtitle="Post-FDP attachment"
           active={{
             day_off: !!findAdj(history, activeIndex, 'day_off', 'after'),
             sbf:     !!findAdj(history, activeIndex, 'sbf',     'after'),
@@ -176,12 +181,17 @@ export function AdjacentDuties({
         />
       </div>
 
-      {/* Min rest read-out */}
+      {/* Min rest read-out — step 3 */}
       <div className="surface rounded-2xl p-3.5 animate-rise">
         <div className="flex items-center gap-2 mb-2">
+          <span className="w-6 h-6 rounded-full bg-brand-500 text-white text-[11px] font-extrabold grid place-items-center shrink-0">۳</span>
           <ShieldCheck className="w-4 h-4 text-brand-600 dark:text-brand-400" />
-          <div className="text-[12px] font-extrabold opacity-80 flex-1">حداقل Rest پیش از پرواز</div>
+          <div className="text-[12.5px] font-extrabold flex-1">نتیجه: حداقل Rest قبل از این پرواز</div>
           <RestBadge status={restCheck?.status} />
+        </div>
+        <div className="text-[11px] opacity-70 mb-3 leading-relaxed">
+          مقدار <b>«در دسترس»</b> باید بزرگ‌تر یا برابر <b>«موردنیاز»</b> باشد تا پرواز قانونی شود.
+          هر گزینه‌ای که در بالا اضافه کنی، این عددها به‌روز می‌شوند.
         </div>
 
         <div className="grid grid-cols-2 gap-2.5">
@@ -221,20 +231,24 @@ export function AdjacentDuties({
   );
 }
 
-function SlotRow({ icon: Icon, title, subtitle, active, onToggle }: {
-  icon: typeof Sunrise; title: string; subtitle: string;
+function StepHeader({ n, title, hint }: { n: string; title: string; hint: string }) {
+  return (
+    <div className="flex items-center gap-2 mb-2">
+      <span className="w-6 h-6 rounded-full bg-brand-500 text-white text-[11px] font-extrabold grid place-items-center shrink-0">{n}</span>
+      <div className="min-w-0 flex-1">
+        <div className="text-[12.5px] font-extrabold leading-tight">{title}</div>
+        <div className="text-[10.5px] opacity-65 leading-tight mt-0.5">{hint}</div>
+      </div>
+    </div>
+  );
+}
+
+function SlotRow({ active, onToggle }: {
   active: Record<AdjKind, boolean>;
   onToggle: (k: AdjKind) => void;
 }) {
   return (
-    <div className="flex items-center gap-2 py-1.5">
-      <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 grid place-items-center shrink-0">
-        <Icon className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300" strokeWidth={2.4} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-[12px] font-extrabold leading-none truncate">{title}</div>
-        <div className="text-[10px] opacity-50 leading-none mt-0.5 tracking-wider">{subtitle}</div>
-      </div>
+    <div className="flex items-center gap-2 py-0.5 flex-wrap">
       <Chip kind="day_off" on={active.day_off} onClick={() => onToggle('day_off')} />
       <Chip kind="sbf"     on={active.sbf}     onClick={() => onToggle('sbf')} />
     </div>

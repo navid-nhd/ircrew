@@ -16,6 +16,7 @@ import { auditRoster, type RosterAuditResult } from '../lib/rosterAudit';
 import { vaultEntries } from '../lib/recordsVault';
 import { rosterToHistory } from '../lib/rosterToHistory';
 import { RosterAuditCard } from './RosterAuditCard';
+import { TodaysBriefing } from './TodaysBriefing';
 
 interface Props {
   creds: Credentials;
@@ -176,6 +177,8 @@ export function RosterTab({ creds, onPositionLearned }: Props) {
           <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
         </button>
       </div>
+
+      {data && <TodaysBriefing rows={data.rows} crewCode={creds.code} />}
 
       <HeroStats flt={stats.flt} off={stats.off} rsv={stats.rsv} hours={hours} minutes={minutes} />
 

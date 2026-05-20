@@ -118,49 +118,57 @@
 
 /* Cards */
 .ftl-scope .card{
-  background:rgba(255,255,255,0.72);
-  backdrop-filter:blur(18px) saturate(160%);
-  -webkit-backdrop-filter:blur(18px) saturate(160%);
+  /* High-opacity background so text reads cleanly over any page chrome.
+     Drop backdrop-filter entirely — Android WebView re-rasters per frame and
+     produces a visible "fade" on scroll, plus low-opacity glass was the main
+     contributor to the contrast complaints. */
+  background:#ffffff;
   border-radius:20px; padding:16px 16px;
-  box-shadow:0 1px 0 rgba(255,255,255,0.7) inset,
+  box-shadow:0 1px 0 rgba(255,255,255,0.8) inset,
              0 12px 40px -16px rgba(2,44,34,0.18),
              0 4px 12px -6px rgba(15,23,42,0.06);
-  margin-bottom:12px; border:1px solid rgba(255,255,255,0.5);
+  margin-bottom:12px; border:1px solid rgba(15,23,42,0.08);
   max-width:100%;overflow:hidden;
+  color:#0F172A;
 }
-@media (prefers-color-scheme: dark){
-  .ftl-scope .card{
-    background:rgba(17,24,39,0.55);
-    border-color:rgba(255,255,255,0.08);
-    box-shadow:0 1px 0 rgba(255,255,255,0.06) inset,
-               0 18px 44px -16px rgba(0,0,0,0.6);
-  }
+.dark .ftl-scope .card{
+  background:#0F172A;
+  border-color:rgba(255,255,255,0.10);
+  box-shadow:0 1px 0 rgba(255,255,255,0.06) inset,
+             0 18px 44px -16px rgba(0,0,0,0.6);
+  color:#E2E8F0;
 }
 .ftl-scope .card h2{
   margin:0 0 12px;font-family:'IRANSans','YekanBakh',sans-serif;font-weight:900;
-  color:var(--ink);font-size:15px;border-bottom:none;
+  color:#065f46;font-size:15.5px;border-bottom:none;
   padding-bottom:0;letter-spacing:-0.01em;
 }
+.dark .ftl-scope .card h2{ color:#a7f3d0; }
 .ftl-scope .card h3{
   margin:14px 0 6px;font-family:'IRANSans','YekanBakh',sans-serif;font-weight:800;
-  color:var(--brand-2);font-size:13px;
+  color:#0f172a;font-size:13px;
 }
+.dark .ftl-scope .card h3{ color:#cbd5e1; }
 
 /* Form */
 .ftl-scope .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:10px}
 .ftl-scope .field{display:flex;flex-direction:column;gap:4px}
-.ftl-scope .field label{font-size:11.5px;color:var(--ink-soft);font-weight:700}
+.ftl-scope .field label{font-size:12px;color:#1e293b;font-weight:800;line-height:1.5}
+.dark .ftl-scope .field label{ color:#e2e8f0; }
 .ftl-scope .field label .ref{
-  display:inline-block;background:rgba(16,185,129,0.12);color:var(--brand-2);
-  border:1px solid rgba(16,185,129,0.28);border-radius:6px;padding:0 6px;font-size:10px;
-  margin-right:6px;font-family:'YekanBakhFaNum'
+  display:inline-block;background:rgba(16,185,129,0.18);color:#065f46;
+  border:1px solid rgba(16,185,129,0.40);border-radius:6px;padding:0 6px;font-size:10px;
+  margin-right:6px;font-family:'YekanBakhFaNum';font-weight:800;
+}
+.dark .ftl-scope .field label .ref{
+  background:rgba(16,185,129,0.30);color:#a7f3d0;border-color:rgba(16,185,129,0.55);
 }
 .ftl-scope .field input,
 .ftl-scope .field select,
 .ftl-scope .field textarea{
-  padding:10px 12px;border:1px solid var(--line);border-radius:12px;
-  background:rgba(255,255,255,0.85);font-size:13px;width:100%;
-  font-family:'IRANSans',sans-serif;
+  padding:10px 12px;border:1px solid #cbd5e1;border-radius:12px;
+  background:#ffffff;color:#0f172a;font-size:13.5px;width:100%;
+  font-family:'IRANSans',sans-serif;font-weight:600;
   transition:all .15s ease;
 }
 .ftl-scope .field input:focus,
@@ -339,10 +347,16 @@
 
 /* Misc */
 .ftl-scope .help{
-  background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.22);border-radius:12px;
-  padding:10px 12px;font-size:11.5px;color:var(--ink-soft);margin-bottom:10px;line-height:1.7;
+  background:rgba(16,185,129,0.14);border:1px solid rgba(16,185,129,0.40);border-radius:12px;
+  padding:10px 12px;font-size:12px;color:#0f3a2c;margin-bottom:10px;line-height:1.8;font-weight:500;
 }
-.ftl-scope .help b{color:var(--brand-2)}
+.ftl-scope .help b{color:#065f46;font-weight:800}
+.dark .ftl-scope .help{
+  background:rgba(16,185,129,0.22);
+  border-color:rgba(16,185,129,0.50);
+  color:#e2e8f0;
+}
+.dark .ftl-scope .help b{color:#a7f3d0}
 .ftl-scope .empty{padding:20px;text-align:center;color:var(--muted);font-style:italic;font-size:12px}
 .ftl-scope hr{border:0;border-top:1px solid var(--line);margin:14px 0}
 .ftl-scope .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;margin-top:6px}
