@@ -45,10 +45,10 @@ async function resetSession(): Promise<void> {
 }
 
 const BASE = 'https://crew.iranair.com';
-// Masquerade as desktop Chrome so the upstream serves the desktop layout
-// (some ASP.NET WebForms apps render a stripped mobile view to Android UAs
-// which doesn't include GridViewFlt — the grid we need to parse).
-const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+// Match the User-Agent the Node server uses verbatim. That server flow works
+// end-to-end against crew.iranair.com so by sending the same UA we avoid any
+// UA-conditional routing / layout difference that could trip MAC validation.
+const UA = 'Mozilla/5.0 (compatible; IRCrew/1.0)';
 const EPOCH = Date.UTC(2000, 0, 1);
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -277,8 +277,11 @@ async function aspxPostback(state: AspxState, eventTarget: string, eventArgument
     __VIEWSTATE: state.vs,
     __VIEWSTATEGENERATOR: state.vsg,
     __EVENTVALIDATION: state.ev,
+    // Server-side code includes __VIEWSTATEENCRYPTED unconditionally (even
+    // empty); some ASP.NET versions are picky if the field is absent from
+    // the form. Match that behaviour exactly.
+    __VIEWSTATEENCRYPTED: state.vse ?? '',
   };
-  if (state.vse) body.__VIEWSTATEENCRYPTED = state.vse;
   // ASP.NET WebForms validates postback origin via Referer. The Node server
   // sends this same header — without it the upstream returns a page WITHOUT
   // GridViewFlt and our parse fails with the "GridViewFlt پیدا نشد" error.

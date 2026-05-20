@@ -6,11 +6,13 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
+import okhttp3.ConnectionPool;
 import okhttp3.Cookie;
 import okhttp3.CookieJar;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
+import okhttp3.Protocol;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
@@ -21,6 +23,7 @@ import javax.net.ssl.X509TrustManager;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -119,15 +122,29 @@ public class IRCrewHttpPlugin extends Plugin {
                 }
             };
 
+            // CRITICAL: force HTTP/1.1 only. Iran Air's backend is a
+            // load-balanced ASP.NET cluster without a synchronised machineKey;
+            // OkHttp's default HTTP/2 negotiation can land subsequent
+            // requests on a different node than the one that issued the
+            // VIEWSTATE, which then fails MAC validation with
+            //   "Validation of viewstate MAC failed. If this application is
+            //    hosted by a Web Farm or cluster..."
+            // axios (Node) defaults to HTTP/1.1 + keep-alive which keeps the
+            // socket pinned to the same node, so the Node server works.
+            // Match that by disabling HTTP/2 here and using a single-socket
+            // connection pool so every request reuses the SAME TCP/TLS
+            // session and the load balancer keeps us on the same node.
+            ConnectionPool pool = new ConnectionPool(1, 5, TimeUnit.MINUTES);
             client = new OkHttpClient.Builder()
                 .sslSocketFactory(sc.getSocketFactory(), (X509TrustManager) trustAll[0])
                 .hostnameVerifier((hostname, session) -> {
-                    // Only Iran Air domains use the relaxed verifier.
                     return hostname != null
                         && (hostname.equals("crew.iranair.com")
                             || hostname.equals("iranair.com")
                             || hostname.endsWith(".iranair.com"));
                 })
+                .protocols(Arrays.asList(Protocol.HTTP_1_1))
+                .connectionPool(pool)
                 .cookieJar(cookieJar)
                 .followRedirects(true)
                 .followSslRedirects(true)
