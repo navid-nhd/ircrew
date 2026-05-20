@@ -20,7 +20,14 @@ function faultFor(e: unknown): LoginFault {
       case 'upstream-down':
         return { kind: e.kind, message: e.message, offerDemo: true };
       case 'truncated':
-        return { kind: e.kind, message: 'پاسخ سرور ناقص دریافت شد. دوباره تلاش کنید.', offerDemo: true };
+        // Most often this happens when crew.iranair.com is slow and the proxy
+        // socket closes before the body arrives. Re-using the upstream-down
+        // copy is clearer than the literal "body truncated" phrasing.
+        return {
+          kind: e.kind,
+          message: e.message || 'سرور Iran Air کند پاسخ می‌دهد و ارتباط قطع شد. چند ثانیه صبر کنید و دوباره وارد شوید.',
+          offerDemo: true,
+        };
       default:
         return { kind: e.kind, message: e.message || 'ورود ناموفق بود.', offerDemo: false };
     }

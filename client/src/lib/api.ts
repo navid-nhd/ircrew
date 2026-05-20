@@ -96,15 +96,21 @@ function classifyHttpError(status: number, body: ApiErrorBody, hasJson: boolean)
   }
   if (status >= 500) {
     return new ApiError(
-      hasJson ? (body.error || `خطای سرور (${status}).`) : 'پاسخ سرور ناقص بود؛ اتصال احتمالاً قطع شد. دوباره تلاش کنید.',
+      hasJson
+        ? (body.error || `خطای سرور (${status}).`)
+        : 'ارتباط با سرور Iran Air قطع شد. این معمولاً وقتی پیش می‌آید که سامانه پاسخ کند می‌دهد — چند ثانیه دیگر دوباره تلاش کنید.',
       { status, kind: hasJson ? 'server-error' : 'truncated' },
     );
   }
   if (status >= 400) {
     return new ApiError(body.error || `درخواست نامعتبر (${status}).`, { status, kind: 'client-error' });
   }
-  // 2xx but body.ok === false — the proxy is reporting a logical failure.
-  return new ApiError(body.error || 'پاسخ سرور قابل پردازش نیست.', { status, kind: hasJson ? 'server-error' : 'truncated' });
+  // 2xx but body empty / unparseable — treat as truncated so the user gets a
+  // retry-friendly message rather than a confusing logical failure.
+  return new ApiError(
+    body.error || 'پاسخ سرور به‌طور کامل دریافت نشد. لطفاً چند ثانیه صبر کنید و دوباره تلاش کنید.',
+    { status, kind: hasJson ? 'server-error' : 'truncated' },
+  );
 }
 
 // Auto-retry on 502/504 (upstream-gateway failure) AND on truncated responses
