@@ -37,7 +37,10 @@ const IRCrewHttp = registerPlugin<IRCrewHttpPlugin>('IRCrewHttp');
 const HAS_NATIVE_PLUGIN = Capacitor.getPlatform() === 'android';
 
 const BASE = 'https://crew.iranair.com';
-const UA = 'Mozilla/5.0 (Linux; Android 12; IRCrew) AppleWebKit/537.36';
+// Masquerade as desktop Chrome so the upstream serves the desktop layout
+// (some ASP.NET WebForms apps render a stripped mobile view to Android UAs
+// which doesn't include GridViewFlt — the grid we need to parse).
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 const EPOCH = Date.UTC(2000, 0, 1);
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -351,6 +354,14 @@ export async function nativeFlightsOnDate(creds: Credentials, date: string): Pro
   let state = extractAspxState(home);
   const offset = dateToOffset(date);
   state = await aspxPostback(state, 'CalendarDate', String(offset));
+  // If the page came back without GridViewFlt at all, our session is broken —
+  // surface that as a real error rather than pretending the date has no flights.
+  if (!/GridViewFlt/i.test(state.html)) {
+    if (/Login1\$LoginButton/i.test(state.html)) {
+      throw new UpstreamAuthError('نشست شما منقضی شده. لطفاً خارج و دوباره وارد شوید.');
+    }
+    throw new Error('پاسخ سرور Iran Air قابل تشخیص نیست (GridViewFlt پیدا نشد).');
+  }
   const grid = parseFlightGrid(state.html);
   return { ok: true, date, headers: grid.headers, flights: grid.flights };
 }
@@ -375,6 +386,13 @@ export async function nativeCrewByFlight(
   let state = extractAspxState(home);
   const offset = dateToOffset(date);
   state = await aspxPostback(state, 'CalendarDate', String(offset));
+  // Distinguish "session/parse broken" from "date legitimately has no flights".
+  if (!/GridViewFlt/i.test(state.html)) {
+    if (/Login1\$LoginButton/i.test(state.html)) {
+      throw new UpstreamAuthError('نشست شما منقضی شده. خارج و دوباره وارد شوید.');
+    }
+    throw new Error('پاسخ سرور Iran Air قابل تشخیص نیست (GridViewFlt پیدا نشد).');
+  }
   const fg = parseFlightGrid(state.html);
   if (fg.flights.length === 0) {
     throw new UpstreamNoDataError('برای این تاریخ، اطلاعات خدمهٔ پرواز در سامانه ثبت نیست.');
