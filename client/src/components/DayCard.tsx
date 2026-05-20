@@ -153,42 +153,46 @@ export function DayCard({ row, isToday, creds }: Props) {
         onClick={toggle}
         disabled={!isFlight}
         className={cn(
-          'w-full text-right p-3.5 flex gap-3 items-stretch transition-colors',
+          // Mobile-first padding/gaps — on 360-px screens the previous p-3.5
+          // + gap-3 + 88-px date column + 36-px chevron added up to more than
+          // viewport width, forcing horizontal scroll inside the card.
+          'w-full text-right p-2.5 sm:p-3.5 flex gap-2 sm:gap-3 items-stretch transition-colors min-w-0',
           isFlight && 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30 active:scale-[0.997]',
           !isFlight && 'cursor-default',
         )}
       >
-        <div className={cn('w-1.5 rounded-full bg-gradient-to-b shrink-0', t.accent)} />
+        <div className={cn('w-1 sm:w-1.5 rounded-full bg-gradient-to-b shrink-0', t.accent)} />
 
         <div className={cn(
-          'w-[88px] shrink-0 grid place-items-center rounded-xl py-2 px-1.5',
+          // Smaller date column on phones, full size from sm: up.
+          'w-[60px] sm:w-[88px] shrink-0 grid place-items-center rounded-xl py-1.5 sm:py-2 px-1 sm:px-1.5',
           t.cell,
         )}>
-          <div className="text-[11px] font-bold opacity-75 leading-none">
+          <div className="text-[10px] sm:text-[11px] font-bold opacity-75 leading-none">
             {weekdayFa(dep.weekday)}
           </div>
-          <div className="text-[30px] font-black leading-none my-1.5 tracking-wide">
+          <div className="text-[22px] sm:text-[30px] font-black leading-none my-1 sm:my-1.5 tracking-wide">
             {toFaDigits(jalaliDayNum)}
           </div>
-          <div className="text-[11px] font-bold opacity-80 leading-tight text-center whitespace-nowrap">
+          <div className="text-[10px] sm:text-[11px] font-bold opacity-80 leading-tight text-center whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
             {jalaliMonthFa}
           </div>
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-            <span className={cn('inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2 py-0.5', t.pill)}>
+          <div className="flex items-center gap-1 sm:gap-1.5 mb-1 sm:mb-1.5 flex-wrap">
+            <span className={cn('inline-flex items-center gap-1 text-[10.5px] sm:text-[11px] font-bold rounded-full px-1.5 sm:px-2 py-0.5', t.pill)}>
               <Icon className="w-3 h-3" strokeWidth={2.5} />
               {t.label}
             </span>
             {isToday && (
-              <span className="text-[11px] font-extrabold text-white bg-gradient-to-br from-brand-500 to-brand-700 rounded-full px-2 py-0.5 shadow-sm">
+              <span className="text-[10.5px] sm:text-[11px] font-extrabold text-white bg-gradient-to-br from-brand-500 to-brand-700 rounded-full px-1.5 sm:px-2 py-0.5 shadow-sm">
                 امروز
               </span>
             )}
           </div>
 
-          <div className="text-[12px] opacity-80 truncate">
+          <div className="text-[11px] sm:text-[12px] opacity-80 truncate">
             {weekdayFa(dep.weekday)} · <span className="tabular-nums">{jalaliShort(dep.jalali)}</span>
           </div>
 
@@ -207,9 +211,9 @@ export function DayCard({ row, isToday, creds }: Props) {
         </div>
 
         {isFlight && (
-          <div className="self-center grid place-items-center w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 shrink-0">
+          <div className="self-center grid place-items-center w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-slate-100 dark:bg-slate-800 shrink-0">
             <ChevronDown
-              className={cn('w-4 h-4 transition-transform duration-300', expanded && 'rotate-180')}
+              className={cn('w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-300', expanded && 'rotate-180')}
               strokeWidth={2.4}
             />
           </div>
@@ -293,30 +297,30 @@ function FlightRoute({
         </span>
       </div>
 
-      <div className="flex items-center gap-2 min-w-0" dir="ltr">
+      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0" dir="ltr">
         <div className="text-center shrink-0">
-          <div className="text-[22px] font-black tracking-[0.18em] tabular-nums leading-none pr-[0.18em] text-gradient-brand">
+          <div className="text-[17px] sm:text-[22px] font-black tracking-[0.1em] sm:tracking-[0.18em] tabular-nums leading-none pr-[0.1em] sm:pr-[0.18em] text-gradient-brand">
             {depCode || '—'}
           </div>
-          <div className="text-[11.5px] opacity-80 font-bold tabular-nums tracking-[0.16em] mt-1.5 pr-[0.16em]">
+          <div className="text-[10.5px] sm:text-[11.5px] opacity-80 font-bold tabular-nums tracking-[0.1em] sm:tracking-[0.16em] mt-1 sm:mt-1.5 pr-[0.1em] sm:pr-[0.16em]">
             {depTime}
           </div>
         </div>
-        {/* Min-w-0 + shrinking dashed segments so the route bar never overflows
-            its parent on narrow screens. The plane icon stays at a fixed size. */}
-        <div className="flex items-center gap-1 flex-1 min-w-0 relative px-1">
+        {/* Middle: dashed-line + plane bridge. The min-w-0 + shrinking
+            segments keep this from forcing horizontal overflow on phones. */}
+        <div className="flex items-center gap-1 flex-1 min-w-0 relative px-0.5 sm:px-1">
           <span className="flex-1 min-w-0 border-t-2 border-dashed border-brand-400/50 dark:border-brand-600/50" />
           <div className="relative shrink-0">
             <div className="absolute inset-0 bg-brand-500/30 rounded-full blur-md" />
-            <Plane className="relative w-4 h-4 text-brand-600 dark:text-brand-400 drop-shadow" strokeWidth={2.6} />
+            <Plane className="relative w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-600 dark:text-brand-400 drop-shadow" strokeWidth={2.6} />
           </div>
           <span className="flex-1 min-w-0 border-t-2 border-dashed border-brand-400/50 dark:border-brand-600/50" />
         </div>
         <div className="text-center shrink-0">
-          <div className="text-[22px] font-black tracking-[0.18em] tabular-nums leading-none pr-[0.18em] text-gradient-brand">
+          <div className="text-[17px] sm:text-[22px] font-black tracking-[0.1em] sm:tracking-[0.18em] tabular-nums leading-none pr-[0.1em] sm:pr-[0.18em] text-gradient-brand">
             {arrCode || '—'}
           </div>
-          <div className="text-[11.5px] opacity-80 font-bold tabular-nums tracking-[0.16em] mt-1.5 pr-[0.16em]">
+          <div className="text-[10.5px] sm:text-[11.5px] opacity-80 font-bold tabular-nums tracking-[0.1em] sm:tracking-[0.16em] mt-1 sm:mt-1.5 pr-[0.1em] sm:pr-[0.16em]">
             {arrTime}
           </div>
         </div>
