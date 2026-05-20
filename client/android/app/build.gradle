@@ -40,6 +40,11 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+
+    // Custom IRCrewHttpPlugin (Java) uses OkHttp directly with a relaxed TLS
+    // verifier for *.iranair.com — Capacitor uses OkHttp internally but does
+    // not expose it as a transitive dependency, so we declare it here.
+    implementation "com.squareup.okhttp3:okhttp:4.12.0"
 }
 
 apply from: 'capacitor.build.gradle'
