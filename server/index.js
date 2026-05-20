@@ -207,6 +207,13 @@ function classifyFlt(fltNo) {
   if (/^(MTG|MEET(?:ING)?)/.test(upper))      return { status: 'MEET',   code: 'MTG', label: f || 'Meeting' };
   if (/^(REJ|SCK|SICK|REF|REFUSE)/.test(upper)) return { status: 'REJECT', code: upper.split(/\s+/)[0], label: f || 'Rejected' };
   if (/^(GND|GROUND|GR\b)/.test(upper))         return { status: 'GROUND', code: 'GND', label: f || 'Grounded' };
+  // Dead-head / Positioning: crew flies as passenger to reposition for a
+  // mission elsewhere. Iran Air marks these as "DH715", "D/H 715", or
+  // "IR715/DH". Always pre-empts the bare-FLIGHT match below.
+  if (/(^|\s|\/)D[\s\/.-]*H\b/.test(upper) || /^DH\s*\d/.test(upper)) {
+    const m2 = upper.match(/(\d{2,5})/);
+    return { status: 'DEADHEAD', code: m2 ? 'DH' + m2[1] : 'DH', label: f };
+  }
   // Real flight: e.g. "IR715" or "IRA715" or "715"
   const m = upper.match(/^([A-Z]{1,3})?\s*(\d{2,5})\b/);
   if (m) return { status: 'FLIGHT', code: (m[1] || '') + m[2], label: f };

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Plane, BedDouble, ShieldAlert, MapPin, ChevronDown, Loader2, Users, AlertTriangle,
-  GraduationCap, Stethoscope, BookUser, Users2, Ban, Briefcase, Archive, Info,
+  GraduationCap, Stethoscope, BookUser, Users2, Ban, Briefcase, Archive, Info, Armchair,
 } from 'lucide-react';
 import type { Credentials, RosterRow, CrewResponse } from '../lib/types';
 import { parseDepArrCell, weekdayFa, jalaliShort, toFaDigits, cn } from '../lib/utils';
@@ -42,6 +42,15 @@ const KIND = {
     icon: Plane, label: 'پرواز',
     cell: 'bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-950/40 dark:to-emerald-900/20 ring-1 ring-emerald-300/40 dark:ring-emerald-800/40',
     glow: 'shadow-[0_8px_28px_-10px_rgba(16,185,129,0.45)]',
+  },
+  DEADHEAD: {
+    // Crew flies as passenger (positioning). Distinct violet tone — clearly
+    // not an operational flight, but still a duty (counts toward FDP).
+    accent: 'from-violet-400 to-fuchsia-600',
+    pill: 'bg-gradient-to-br from-violet-100 to-fuchsia-200 text-violet-800 dark:from-violet-950/55 dark:to-fuchsia-900/40 dark:text-violet-200',
+    icon: Armchair, label: 'دِدهد (D/H)',
+    cell: 'bg-gradient-to-br from-violet-100 to-fuchsia-50 dark:from-violet-950/40 dark:to-fuchsia-900/20 ring-1 ring-violet-300/40 dark:ring-violet-700/40',
+    glow: 'shadow-[0_8px_28px_-10px_rgba(139,92,246,0.35)]',
   },
   TRAIN: {
     accent: 'from-sky-400 to-blue-600',

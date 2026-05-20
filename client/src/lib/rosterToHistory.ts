@@ -43,14 +43,15 @@ const classifyFdpWindow = (startIso: string, endIso: string) => {
 };
 
 const ROSTER_TO_DUTY: Partial<Record<RosterRow['kind'], DutyKind>> = {
-  FLIGHT: 'fdp',
-  OFF: 'day_off',
-  RSV: 'reserve',     // Reserve roster slot; the engine treats this differently from SBF
-  TRAIN: 'training',
-  MED: 'admin',
-  PASS: 'admin',
-  MEET: 'admin',
-  GROUND: 'admin',
+  FLIGHT:   'fdp',
+  DEADHEAD: 'positioning',  // Crew flies as passenger — counts as duty, not FDP block time
+  OFF:      'day_off',
+  RSV:      'reserve',      // Reserve roster slot; the engine treats this differently from SBF
+  TRAIN:    'training',
+  MED:      'admin',
+  PASS:     'admin',
+  MEET:     'admin',
+  GROUND:   'admin',
   // REJECT / OTHER → skipped (not a duty we can model)
 };
 
@@ -83,7 +84,8 @@ export function rosterToHistory(rows: RosterRow[]): ConversionResult {
     let startIso: string;
     let endIso: string;
 
-    if (dutyKind === 'fdp' && dep.time && arr.iso && arr.time) {
+    if ((dutyKind === 'fdp' || dutyKind === 'positioning') && dep.time && arr.iso && arr.time) {
+      // Dead-head flights have real dep/arr times like an FDP — use them.
       startIso = combine(dep.iso, dep.time);
       const arrDate = maybeNextDay(dep.iso, dep.time, arr.iso, arr.time);
       endIso = combine(arrDate, arr.time);

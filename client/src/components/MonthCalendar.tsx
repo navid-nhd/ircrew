@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Plane, GraduationCap, Stethoscope, BookUser, Users2, Ban, Briefcase } from 'lucide-react';
+import { Plane, GraduationCap, Stethoscope, BookUser, Users2, Ban, Briefcase, Armchair } from 'lucide-react';
 import type { RosterRow, DutyKind } from '../lib/types';
 import {
   jalaliFromIso, isoFromJalali, jalaaliMonthLength, persianWeekdayIndex,
@@ -40,7 +40,7 @@ interface CellData {
 }
 
 // Higher-priority kinds win for a given day's dominant indicator.
-const KIND_PRIORITY: Kind[] = ['FLIGHT', 'REJECT', 'GROUND', 'TRAIN', 'MED', 'PASS', 'MEET', 'RSV', 'OFF', 'OTHER'];
+const KIND_PRIORITY: Kind[] = ['FLIGHT', 'DEADHEAD', 'REJECT', 'GROUND', 'TRAIN', 'MED', 'PASS', 'MEET', 'RSV', 'OFF', 'OTHER'];
 function dominantKind(events: RosterRow[]): Kind {
   if (!events.length) return 'NONE';
   for (const k of KIND_PRIORITY) {
@@ -160,6 +160,12 @@ const CELL_STYLES: Record<Exclude<Kind, 'NONE'>, CellStyle> = {
     bg: 'bg-gradient-to-br from-emerald-400 via-emerald-600 to-emerald-800 text-white shadow-lg shadow-emerald-900/25 ring-1 ring-emerald-300/40',
     text: '', iconColor: '', Icon: Plane, label: '',
   },
+  DEADHEAD: {
+    // Same visual weight as a flight (still a duty), but violet tone so the
+    // user can tell at a glance they are not the operating crew.
+    bg: 'bg-gradient-to-br from-violet-400 via-violet-600 to-fuchsia-700 text-white shadow-lg shadow-violet-900/25 ring-1 ring-violet-300/40',
+    text: '', iconColor: '', Icon: Armchair, label: 'D/H',
+  },
   TRAIN: {
     bg: 'bg-gradient-to-br from-sky-100 to-sky-200 dark:from-sky-950/55 dark:to-sky-900/40 ring-1 ring-sky-300/40 dark:ring-sky-700/40',
     text: 'text-sky-800 dark:text-sky-200',
@@ -215,16 +221,24 @@ const CELL_STYLES: Record<Exclude<Kind, 'NONE'>, CellStyle> = {
 
 function Cell({ c, onClick }: { c: CellData; onClick: () => void }) {
   const isFlight = c.kind === 'FLIGHT';
+  const isDH     = c.kind === 'DEADHEAD';
   const isNone   = c.kind === 'NONE';
   const style = !isNone ? CELL_STYLES[c.kind as Exclude<Kind, 'NONE'>] : null;
   const Icon = style?.Icon ?? null;
+  // The bottom "tag" is one of: flight code (FLIGHT), "D/H" (DEADHEAD), or
+  // the kind's short label (OFF/RSV/...). One source of truth.
+  const tag = isFlight
+    ? c.firstFlightCode ?? ''
+    : isDH
+      ? 'D/H'
+      : style?.label ?? '';
 
   return (
     <button
       onClick={onClick}
       aria-label={`روز ${c.jd}`}
       className={cn(
-        'relative aspect-square rounded-xl flex flex-col items-center justify-center transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]',
+        'relative aspect-square rounded-xl flex flex-col items-center justify-center transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] overflow-hidden',
         style?.bg,
         style?.text,
         isNone && 'text-slate-400 dark:text-slate-500',
@@ -233,42 +247,56 @@ function Cell({ c, onClick }: { c: CellData; onClick: () => void }) {
         !c.isSelected && 'hover:scale-[1.06] active:scale-95',
       )}
     >
-      {/* Inner shine for flight cells */}
-      {isFlight && (
+      {/* Inner shine for filled cells */}
+      {(isFlight || isDH) && (
         <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/25 via-transparent to-transparent pointer-events-none" />
       )}
 
+      {/* Day number — vertically centered, no overlap with tag */}
       <span className={cn(
-        'relative text-[16px] font-black tabular-nums tracking-wide leading-none',
-        isFlight && 'drop-shadow',
+        // On the narrowest phones (~46-px cells) we keep the number small so
+        // even with a 3-char tag below ("D/H") there's no collision.
+        'relative font-black tabular-nums tracking-wide leading-none',
+        'text-[14px] sm:text-[16px]',
+        (isFlight || isDH) && 'drop-shadow',
       )}>
         {toFaDigits(c.jd!)}
       </span>
 
-      {/* Flight: small flight code below day number */}
-      {isFlight && c.firstFlightCode && (
-        <span className="relative text-[9px] font-extrabold tabular-nums tracking-[0.08em] mt-1 opacity-95 drop-shadow">
-          {c.firstFlightCode}
+      {/* Tag pill below the number — replaces the floating corner icon, so
+          there is no overlap on small cells. Icon sits INSIDE the pill on
+          larger viewports only. */}
+      {tag && (
+        <span className={cn(
+          'relative mt-0.5 sm:mt-1 inline-flex items-center justify-center gap-[2px]',
+          'text-[8.5px] sm:text-[9.5px] font-extrabold tabular-nums tracking-[0.04em]',
+          'leading-none whitespace-nowrap max-w-full px-[3px] py-[1px]',
+          'rounded',
+          // On filled cells the text is white-on-color — no extra bg.
+          // On unfilled (RSV/OFF/etc) we add a subtle pill so the label
+          // stands out against the cell tint.
+          !isFlight && !isDH && 'bg-black/5 dark:bg-white/10',
+          isFlight && 'opacity-95 drop-shadow',
+          (style?.iconColor || style?.text) ?? '',
+        )}>
+          {/* Tiny inline icon — only on sm+ to keep the smallest cells clean */}
+          {Icon && (
+            <Icon
+              className={cn(
+                'hidden sm:block w-[10px] h-[10px] -mr-[1px]',
+                isFlight && '-scale-x-100',
+                isFlight || isDH ? '' : 'opacity-80',
+              )}
+              strokeWidth={2.6}
+            />
+          )}
+          <span className="truncate">{tag}</span>
         </span>
       )}
 
-      {/* Non-flight kinds: short label below day number */}
-      {!isFlight && !isNone && style?.label && (
-        <span className={cn('text-[9px] font-extrabold mt-1 tracking-[0.08em]', style.iconColor || style.text)}>
-          {style.label}
-        </span>
-      )}
-
-      {/* Icon: top-left for flight (plane), for special kinds */}
-      {isFlight && (
-        <Plane className="absolute top-1 left-1 w-3 h-3 opacity-80 -scale-x-100 drop-shadow" strokeWidth={2.8} />
-      )}
-      {!isFlight && Icon && (
-        <Icon className={cn('absolute top-1 left-1 w-3 h-3 opacity-80', style!.iconColor)} strokeWidth={2.6} />
-      )}
-
-      {c.flightCount! > 1 && isFlight && (
-        <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-gradient-to-br from-rose-400 to-rose-600 text-white text-[9px] font-extrabold grid place-items-center leading-none shadow-md ring-2 ring-white dark:ring-slate-900 animate-pulse">
+      {/* Multi-flight badge */}
+      {c.flightCount! > 1 && (isFlight || isDH) && (
+        <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-gradient-to-br from-rose-400 to-rose-600 text-white text-[8.5px] font-extrabold grid place-items-center leading-none shadow-md ring-2 ring-white dark:ring-slate-900 animate-pulse">
           {toFaDigits(c.flightCount!)}
         </span>
       )}
@@ -279,6 +307,7 @@ function Cell({ c, onClick }: { c: CellData; onClick: () => void }) {
 function Legend() {
   const items: Array<{ color: string; label: string }> = [
     { color: 'bg-emerald-500', label: 'پرواز' },
+    { color: 'bg-violet-500',  label: 'D/H'   },
     { color: 'bg-sky-500',     label: 'دوره'  },
     { color: 'bg-rose-500',    label: 'پزشکی' },
     { color: 'bg-cyan-500',    label: 'گذرنامه' },
