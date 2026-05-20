@@ -94,7 +94,11 @@ async function nativeGet(url: string, headers: Record<string, string>): Promise<
   return isString(res.data) ? res.data : String(res.data ?? '');
 }
 
-async function postForm(url: string, body: Record<string, string>): Promise<string> {
+async function postForm(
+  url: string,
+  body: Record<string, string>,
+  extraHeaders: Record<string, string> = {},
+): Promise<string> {
   let lastErr: unknown = null;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
@@ -103,6 +107,7 @@ async function postForm(url: string, body: Record<string, string>): Promise<stri
         'User-Agent': UA,
         Accept: '*/*',
         'Accept-Language': 'en-US,en;q=0.9',
+        ...extraHeaders,
       }, formBody(body));
     } catch (e) {
       lastErr = e;
@@ -112,11 +117,15 @@ async function postForm(url: string, body: Record<string, string>): Promise<stri
   throw lastErr ?? new Error('upstream POST failed');
 }
 
-async function getHtml(url: string): Promise<string> {
+async function getHtml(url: string, extraHeaders: Record<string, string> = {}): Promise<string> {
   let lastErr: unknown = null;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      return await nativeGet(url, { 'User-Agent': UA, Accept: 'text/html,application/xhtml+xml' });
+      return await nativeGet(url, {
+        'User-Agent': UA,
+        Accept: 'text/html,application/xhtml+xml',
+        ...extraHeaders,
+      });
     } catch (e) {
       lastErr = e;
       if (attempt < 3) await sleep(700 * attempt + Math.random() * 300);
@@ -124,6 +133,16 @@ async function getHtml(url: string): Promise<string> {
   }
   throw lastErr ?? new Error('upstream GET failed');
 }
+
+// Build a short text snippet of an HTML response so the user-facing error
+// can include real diagnostic info we can read from a screenshot, instead
+// of just "GridViewFlt not found". Strips long whitespace runs.
+const snippet = (html: string, max = 220): string => {
+  if (!html) return '<empty body>';
+  const s = html.replace(/\s+/g, ' ').trim();
+  if (s.length <= max) return s;
+  return s.slice(0, max) + ' … (' + s.length + ' chars total)';
+};
 
 const parseHtml = (html: string): Document =>
   new DOMParser().parseFromString(html, 'text/html');
@@ -227,14 +246,26 @@ function extractAspxState(html: string): AspxState {
 async function aspxLogin(code: string, pass: string): Promise<string> {
   const r1 = await getHtml(`${BASE}/Crew/Login.aspx?ReturnUrl=%2fCrew%2fFlightCrew.aspx`);
   const st = extractAspxState(r1);
-  if (!st.vs) throw new Error('Could not parse Login.aspx');
-  const r2 = await postForm(`${BASE}/Crew/Login.aspx?ReturnUrl=%2fCrew%2fFlightCrew.aspx`, {
-    __EVENTTARGET: '', __EVENTARGUMENT: '',
-    __VIEWSTATE: st.vs, __VIEWSTATEGENERATOR: st.vsg, __EVENTVALIDATION: st.ev,
-    'Login1$UserName': code, 'Login1$Password': pass, 'Login1$LoginButton': 'Log In',
-  });
+  if (!st.vs) {
+    throw new Error(`Login.aspx VIEWSTATE not found. Body: ${snippet(r1)}`);
+  }
+  const r2 = await postForm(
+    `${BASE}/Crew/Login.aspx?ReturnUrl=%2fCrew%2fFlightCrew.aspx`,
+    {
+      __EVENTTARGET: '', __EVENTARGUMENT: '',
+      __VIEWSTATE: st.vs, __VIEWSTATEGENERATOR: st.vsg, __EVENTVALIDATION: st.ev,
+      'Login1$UserName': code, 'Login1$Password': pass, 'Login1$LoginButton': 'Log In',
+    },
+    { Referer: `${BASE}/Crew/Login.aspx?ReturnUrl=%2fCrew%2fFlightCrew.aspx`, Origin: BASE },
+  );
   if (/Login1\$LoginButton/.test(r2) && /Login In|Log In/i.test(r2) && !/Crew In Flight/i.test(r2)) {
     throw new UpstreamAuthError('Authentication failed (FlightCrew.aspx).');
+  }
+  // After a successful login the redirect should land on FlightCrew.aspx,
+  // which contains the GridViewFlt grid. If it doesn't, the redirect / cookie
+  // chain broke — surface this distinctly so we can debug.
+  if (!/GridViewFlt|CalendarDate/i.test(r2)) {
+    throw new Error(`Login redirect did NOT land on FlightCrew.aspx. Body: ${snippet(r2)}`);
   }
   return r2;
 }
@@ -248,7 +279,13 @@ async function aspxPostback(state: AspxState, eventTarget: string, eventArgument
     __EVENTVALIDATION: state.ev,
   };
   if (state.vse) body.__VIEWSTATEENCRYPTED = state.vse;
-  const html = await postForm(`${BASE}/Crew/FlightCrew.aspx`, body);
+  // ASP.NET WebForms validates postback origin via Referer. The Node server
+  // sends this same header — without it the upstream returns a page WITHOUT
+  // GridViewFlt and our parse fails with the "GridViewFlt پیدا نشد" error.
+  const html = await postForm(`${BASE}/Crew/FlightCrew.aspx`, body, {
+    Referer: `${BASE}/Crew/FlightCrew.aspx`,
+    Origin: BASE,
+  });
   return extractAspxState(html);
 }
 
@@ -365,13 +402,11 @@ export async function nativeFlightsOnDate(creds: Credentials, date: string): Pro
   let state = extractAspxState(home);
   const offset = dateToOffset(date);
   state = await aspxPostback(state, 'CalendarDate', String(offset));
-  // If the page came back without GridViewFlt at all, our session is broken —
-  // surface that as a real error rather than pretending the date has no flights.
   if (!/GridViewFlt/i.test(state.html)) {
     if (/Login1\$LoginButton/i.test(state.html)) {
       throw new UpstreamAuthError('نشست شما منقضی شده. لطفاً خارج و دوباره وارد شوید.');
     }
-    throw new Error('پاسخ سرور Iran Air قابل تشخیص نیست (GridViewFlt پیدا نشد).');
+    throw new Error(`GridViewFlt missing. Server returned: ${snippet(state.html)}`);
   }
   const grid = parseFlightGrid(state.html);
   return { ok: true, date, headers: grid.headers, flights: grid.flights };
@@ -399,12 +434,11 @@ export async function nativeCrewByFlight(
   let state = extractAspxState(home);
   const offset = dateToOffset(date);
   state = await aspxPostback(state, 'CalendarDate', String(offset));
-  // Distinguish "session/parse broken" from "date legitimately has no flights".
   if (!/GridViewFlt/i.test(state.html)) {
     if (/Login1\$LoginButton/i.test(state.html)) {
       throw new UpstreamAuthError('نشست شما منقضی شده. خارج و دوباره وارد شوید.');
     }
-    throw new Error('پاسخ سرور Iran Air قابل تشخیص نیست (GridViewFlt پیدا نشد).');
+    throw new Error(`GridViewFlt missing. Server returned: ${snippet(state.html)}`);
   }
   const fg = parseFlightGrid(state.html);
   if (fg.flights.length === 0) {
