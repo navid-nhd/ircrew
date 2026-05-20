@@ -16,7 +16,9 @@ export function BottomTabs({
   return (
     <nav className="fixed bottom-0 inset-x-0 z-30 pointer-events-none">
       <div className="mx-auto max-w-screen-sm px-3 pb-safe pointer-events-auto">
-        <div className="relative glass rounded-2xl mb-2 mx-1 flex items-stretch overflow-hidden">
+        {/* Solid translucent background (no backdrop-filter) so it reads
+            correctly on Android WebView which doesn't always honour blur. */}
+        <div className="relative rounded-2xl mb-2 mx-1 flex items-stretch overflow-hidden bg-white/95 dark:bg-slate-900/95 border border-slate-200/70 dark:border-slate-700/50 shadow-[0_-4px_24px_-8px_rgba(15,23,42,0.18)] dark:shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.6)]">
           {/* Sliding active indicator */}
           <div
             className="absolute top-1 bottom-1 rounded-xl bg-gradient-to-br from-brand-400/30 via-brand-500/30 to-brand-700/30 ring-1 ring-brand-500/50 shadow-lg shadow-brand-900/25 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]"

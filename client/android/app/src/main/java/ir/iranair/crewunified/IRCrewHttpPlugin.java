@@ -68,16 +68,52 @@ public class IRCrewHttpPlugin extends Plugin {
             // Cookie jar shared across the lifetime of the app process. Keyed
             // by host so a request to *.iranair.com keeps its .ASPXAUTH across
             // all subsequent postbacks.
+            //
+            // CRITICAL: we MERGE incoming cookies into the existing set per
+            // cookie name. The old "put(host, cookies)" implementation wiped
+            // the jar whenever a response came back with no Set-Cookie header,
+            // which is exactly what happens on the FlightCrew.aspx GET after
+            // the Login.aspx 302 redirect — and that killed .ASPXAUTH right
+            // after we got it.
             final ConcurrentHashMap<String, List<Cookie>> cookieStore = new ConcurrentHashMap<>();
             CookieJar cookieJar = new CookieJar() {
                 @Override
                 public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
-                    cookieStore.put(url.host(), new ArrayList<>(cookies));
+                    if (cookies == null || cookies.isEmpty()) return; // don't wipe
+                    String host = url.host();
+                    List<Cookie> existing = cookieStore.get(host);
+                    if (existing == null) existing = new ArrayList<Cookie>();
+                    long now = System.currentTimeMillis();
+                    List<Cookie> merged = new ArrayList<Cookie>();
+                    // Keep existing cookies that are NOT being replaced by name+path
+                    // and that are still valid.
+                    for (Cookie e : existing) {
+                        if (e.expiresAt() <= now) continue;
+                        boolean replaced = false;
+                        for (Cookie c : cookies) {
+                            if (e.name().equals(c.name()) && e.path().equals(c.path())) {
+                                replaced = true;
+                                break;
+                            }
+                        }
+                        if (!replaced) merged.add(e);
+                    }
+                    // Add the new cookies (skip ones already expired).
+                    for (Cookie c : cookies) {
+                        if (c.expiresAt() > now) merged.add(c);
+                    }
+                    cookieStore.put(host, merged);
                 }
                 @Override
                 public List<Cookie> loadForRequest(HttpUrl url) {
                     List<Cookie> cookies = cookieStore.get(url.host());
-                    return cookies != null ? cookies : new ArrayList<Cookie>();
+                    if (cookies == null) return new ArrayList<Cookie>();
+                    long now = System.currentTimeMillis();
+                    List<Cookie> alive = new ArrayList<Cookie>();
+                    for (Cookie c : cookies) {
+                        if (c.expiresAt() > now) alive.add(c);
+                    }
+                    return alive;
                 }
             };
 
