@@ -5,10 +5,16 @@ const config: CapacitorConfig = {
   appName: 'IRCrew',
   webDir: 'dist',
   server: {
-    // Allow http://localhost dev backend access from the Android WebView while
-    // the user hasn't switched to a production proxy URL yet.
     androidScheme: 'https',
     cleartext: true,
+  },
+  plugins: {
+    // Enable CapacitorHttp — required so window.fetch / our lib/upstreamClient
+    // can call crew.iranair.com directly from the native shell without CORS
+    // restrictions or an intermediate proxy server.
+    CapacitorHttp: {
+      enabled: true,
+    },
   },
 };
 

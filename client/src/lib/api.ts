@@ -1,7 +1,38 @@
+import { Capacitor } from '@capacitor/core';
 import type {
   Credentials, RosterResponse, FlightsResponse, CrewResponse,
 } from './types';
 import { cache, cacheKey } from './cache';
+import {
+  nativeLogin, nativeRoster, nativeFlightsOnDate, nativeCrewOnFlight, nativeCrewByFlight,
+  UpstreamAuthError, UpstreamNoDataError, UpstreamNotFoundError,
+} from './upstreamClient';
+
+/** True when we're running inside the bundled Android/iOS shell. In that
+ *  environment there is no proxy server; we call crew.iranair.com directly via
+ *  CapacitorHttp (native cookie jar + no CORS). */
+const IS_NATIVE = Capacitor.isNativePlatform();
+
+/** Convert an UpstreamError thrown by the native client into a typed ApiError
+ *  so the rest of the app reacts to the same enum it always has. */
+function mapNativeError(e: unknown): never {
+  if (e instanceof UpstreamAuthError) {
+    throw new ApiError('کد یا رمز عبور نادرست است.', { status: 401, kind: 'auth' });
+  }
+  if (e instanceof UpstreamNoDataError) {
+    throw new ApiError(e.message, { status: 404, kind: 'no-data', noData: true });
+  }
+  if (e instanceof UpstreamNotFoundError) {
+    throw new ApiError(e.message, { status: 404, kind: 'not-found', notFound: true, seenCount: e.__seen });
+  }
+  if (e instanceof Error) {
+    throw new ApiError(
+      `ارتباط با سرور Iran Air برقرار نشد (${e.message || 'unknown'}). چند ثانیه دیگر دوباره تلاش کنید.`,
+      { status: 0, kind: 'upstream-down' },
+    );
+  }
+  throw new ApiError('ارتباط با سرور Iran Air قطع شد.', { status: 0, kind: 'upstream-down' });
+}
 
 // The proxy URL is configurable so the bundled Android shell can point at a
 // hosted backend instead of the dev `/api` path. We read it lazily so the user
@@ -196,31 +227,58 @@ async function cachedPost<T>(
   }
 }
 
+// Cache wrapper for native calls — same signature as cachedPost so the call
+// sites in the rest of the app don't have to branch.
+async function cachedNative<T>(
+  key: string,
+  fn: () => Promise<T>,
+  opts: FetchOpts = {},
+): Promise<{ data: T; fromCache: boolean; stale: boolean; storedAt: number | null }> {
+  if (!opts.forceFresh) {
+    const hit = cache.get<T>(key);
+    if (hit && !hit.stale) return { data: hit.value, fromCache: true, stale: false, storedAt: hit.storedAt };
+  }
+  try {
+    const data = await fn();
+    cache.set(key, data);
+    return { data, fromCache: false, stale: false, storedAt: Date.now() };
+  } catch (e) {
+    const stale = cache.get<T>(key);
+    if (stale) return { data: stale.value, fromCache: true, stale: true, storedAt: stale.storedAt };
+    try { mapNativeError(e); } catch (mapped) { throw mapped; }
+    throw e;
+  }
+}
+
 export const api = {
-  login: (creds: Credentials) =>
-    post<{ ok: true; periods: string[] }>('/login', creds),
+  login: async (creds: Credentials): Promise<{ ok: true; periods: string[] }> => {
+    if (IS_NATIVE) {
+      try { return await nativeLogin(creds); } catch (e) { mapNativeError(e); }
+    }
+    return post<{ ok: true; periods: string[] }>('/login', creds);
+  },
 
-  roster: (creds: Credentials, period: string, opts: FetchOpts = {}) =>
-    cachedPost<RosterResponse>(
-      '/roster', { ...creds, period },
-      cacheKey('roster', creds.code, period), opts,
-    ),
+  roster: (creds: Credentials, period: string, opts: FetchOpts = {}) => {
+    const k = cacheKey('roster', creds.code, period);
+    if (IS_NATIVE) return cachedNative<RosterResponse>(k, () => nativeRoster(creds, period), opts);
+    return cachedPost<RosterResponse>('/roster', { ...creds, period }, k, opts);
+  },
 
-  flightsOnDate: (creds: Credentials, date: string, opts: FetchOpts = {}) =>
-    cachedPost<FlightsResponse>(
-      '/flight-crew/flights', { ...creds, date },
-      cacheKey('flights', creds.code, date), opts,
-    ),
+  flightsOnDate: (creds: Credentials, date: string, opts: FetchOpts = {}) => {
+    const k = cacheKey('flights', creds.code, date);
+    if (IS_NATIVE) return cachedNative<FlightsResponse>(k, () => nativeFlightsOnDate(creds, date), opts);
+    return cachedPost<FlightsResponse>('/flight-crew/flights', { ...creds, date }, k, opts);
+  },
 
-  crewOnFlight: (creds: Credentials, date: string, eventTarget: string, eventArgument: string, opts: FetchOpts = {}) =>
-    cachedPost<CrewResponse>(
-      '/flight-crew/crew', { ...creds, date, eventTarget, eventArgument },
-      cacheKey('crew', creds.code, date, eventTarget, eventArgument), opts,
-    ),
+  crewOnFlight: (creds: Credentials, date: string, eventTarget: string, eventArgument: string, opts: FetchOpts = {}) => {
+    const k = cacheKey('crew', creds.code, date, eventTarget, eventArgument);
+    if (IS_NATIVE) return cachedNative<CrewResponse>(k, () => nativeCrewOnFlight(creds, date, eventTarget, eventArgument), opts);
+    return cachedPost<CrewResponse>('/flight-crew/crew', { ...creds, date, eventTarget, eventArgument }, k, opts);
+  },
 
-  crewByFlight: (creds: Credentials, date: string, fltNo: string, acType?: string, opts: FetchOpts = {}) =>
-    cachedPost<CrewResponse>(
-      '/flight-crew/by-flight', { ...creds, date, fltNo, acType },
-      cacheKey('crew-by-flt', creds.code, date, fltNo, acType ?? ''), opts,
-    ),
+  crewByFlight: (creds: Credentials, date: string, fltNo: string, acType?: string, opts: FetchOpts = {}) => {
+    const k = cacheKey('crew-by-flt', creds.code, date, fltNo, acType ?? '');
+    if (IS_NATIVE) return cachedNative<CrewResponse>(k, () => nativeCrewByFlight(creds, date, fltNo), opts);
+    return cachedPost<CrewResponse>('/flight-crew/by-flight', { ...creds, date, fltNo, acType }, k, opts);
+  },
 };
