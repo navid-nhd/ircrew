@@ -1,26 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Calendar as CalendarIcon, Plane, RefreshCw, Users, AlertTriangle, Loader2, ChevronDown, WifiOff } from 'lucide-react';
-import DateObject from 'react-date-object';
-import gregorian from 'react-date-object/calendars/gregorian';
-import persian from 'react-date-object/calendars/persian';
-import persian_fa from 'react-date-object/locales/persian_fa';
-import { Calendar } from 'react-multi-date-picker';
 import { api } from '../lib/api';
 import type {
   Credentials, CrewResponse, FlightRow, FlightsResponse,
 } from '../lib/types';
-import { todayIso, cn, formatJalaliFull, weekdayFa, jalaliFromIso } from '../lib/utils';
+import { cn, formatJalaliFull, weekdayFa, jalaliFromIso } from '../lib/utils';
 import { CrewList } from './CrewList';
+import { PersianDatePickerSheet } from './PersianDatePickerSheet';
+import { todayIso } from '../lib/utils';
 
 interface Props {
   creds: Credentials;
-}
-
-function isoToPersianDateObject(iso: string): DateObject {
-  return new DateObject({ date: iso, format: 'YYYY-MM-DD', calendar: gregorian }).convert(persian, persian_fa);
-}
-function persianDateObjectToIso(d: DateObject): string {
-  return d.convert(gregorian).format('YYYY-MM-DD');
 }
 
 const WEEKDAY_FROM_ISO_EN = (iso: string): string => {
@@ -239,7 +229,7 @@ export function FlightCrewTab({ creds }: Props) {
       ) : null}
 
       {showPicker && (
-        <DatePickerSheet
+        <PersianDatePickerSheet
           iso={date}
           onClose={() => setShowPicker(false)}
           onPick={(iso) => { setDate(iso); setShowPicker(false); }}
@@ -270,49 +260,3 @@ function SlowLoad({ startedAt, message, slowMessage }: { startedAt?: number; mes
   );
 }
 
-function DatePickerSheet({ iso, onPick, onClose }: { iso: string; onPick: (iso: string) => void; onClose: () => void }) {
-  const value = isoToPersianDateObject(iso);
-  return (
-    <div className="fixed inset-0 z-40 grid items-end" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/55 backdrop-blur-sm animate-rise" />
-      <div
-        className="relative surface rounded-t-3xl max-w-screen-sm w-full mx-auto pb-safe animate-rise text-slate-900 dark:text-slate-100"
-        onClick={(e) => e.stopPropagation()}
-        dir="rtl"
-      >
-        <div className="px-5 pt-4 pb-2">
-          <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-600 mx-auto mb-3" />
-          <div className="text-[15px] font-extrabold">انتخاب تاریخ</div>
-          <div className="text-[11.5px] opacity-65">تقویم شمسی — ضربه بزنید روی روز</div>
-        </div>
-        <div className="px-2 pb-3 flex justify-center" dir="rtl">
-          <Calendar
-            value={value}
-            calendar={persian}
-            locale={persian_fa}
-            weekStartDayIndex={6}
-            onChange={(d) => {
-              if (!d || Array.isArray(d)) return;
-              onPick(persianDateObjectToIso(d));
-            }}
-            className="ircrew-cal ircrew-cal-mobile"
-          />
-        </div>
-        <div className="px-5 pb-3 flex gap-2">
-          <button
-            onClick={() => onPick(todayIso())}
-            className="flex-1 surface-muted rounded-xl py-2.5 text-[13px] font-bold active:scale-[0.99] transition-transform"
-          >
-            امروز
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 rounded-xl py-2.5 bg-gradient-to-br from-brand-600 to-brand-800 text-white font-bold text-[13px] active:scale-[0.99] transition-transform"
-          >
-            بستن
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}

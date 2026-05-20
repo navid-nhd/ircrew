@@ -306,19 +306,29 @@ const monthStartOffset = (yyyyMmDd: string): number => {
   return Math.round((Date.UTC(y, m - 1, 1) - EPOCH) / 86_400_000);
 };
 
-/** Run the CalendarDate postback two-step: navigate to the target month first
- *  (V<startOffset>), then select the actual day. Required when the requested
- *  date is outside the calendar's currently-displayed month, since ASP.NET
- *  Calendar's EnableEventValidation rejects any day-offset that wasn't
- *  rendered in the original page grid. */
+/** Select a date on the FlightCrew.aspx calendar.
+ *
+ *  ASP.NET Calendar shows ONE month at a time and only registers the day cells
+ *  it actually rendered as valid postback arguments. Clicking a day in another
+ *  month fails with "Invalid postback or callback argument". To work around
+ *  that, we POST "V<startOfMonth-offset>" first so the calendar re-renders the
+ *  target month — but only when the target month differs from the visible one.
+ *  Sending the V postback for the already-visible month resets the selection
+ *  state on Iran Air's custom control and causes the next day postback to
+ *  return an empty grid. */
 async function aspxSelectCalendarDate(state: AspxState, yyyyMmDd: string): Promise<AspxState> {
   const dayOffset = dateToOffset(yyyyMmDd);
-  const startOff = monthStartOffset(yyyyMmDd);
-  // Step 1: navigate the calendar to the target month (so the day cell exists
-  // in the rendered grid). The V prefix is ASP.NET Calendar's convention for
-  // "navigate to the month starting at this day offset".
-  let s = await aspxPostback(state, 'CalendarDate', `V${startOff}`);
-  // Step 2: now click the actual day inside that month.
+  // What month is currently visible? Cheap heuristic: today, which is what the
+  // FlightCrew page defaults to right after login.
+  const now = new Date();
+  const todayMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const targetMonth = yyyyMmDd.slice(0, 7);
+
+  let s = state;
+  if (targetMonth !== todayMonth) {
+    const startOff = monthStartOffset(yyyyMmDd);
+    s = await aspxPostback(s, 'CalendarDate', `V${startOff}`);
+  }
   s = await aspxPostback(s, 'CalendarDate', String(dayOffset));
   return s;
 }
