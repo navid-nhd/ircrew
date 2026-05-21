@@ -326,6 +326,7 @@ export function FtlTab({ creds, position }: Props) {
                   activeIndex={activeIndex}
                   history={history}
                   onHistoryChange={setHistory}
+                  onCandidateChange={updateActive}
                   result={result!}
                   evalProfile={profile}
                 />
@@ -358,6 +359,7 @@ export function FtlTab({ creds, position }: Props) {
                   activeIndex={activeIndex}
                   history={history}
                   onHistoryChange={setHistory}
+                  onCandidateChange={updateActive}
                   result={result!}
                   evalProfile={profile}
                 />

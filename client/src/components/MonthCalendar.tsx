@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Plane, GraduationCap, Stethoscope, BookUser, Users2, Ban, Briefcase, Armchair } from 'lucide-react';
+import { Plane, GraduationCap, Stethoscope, BookUser, Users2, Ban, Briefcase, Armchair, Palmtree } from 'lucide-react';
 import type { RosterRow, DutyKind } from '../lib/types';
 import {
   jalaliFromIso, isoFromJalali, jalaaliMonthLength, persianWeekdayIndex,
@@ -40,7 +40,7 @@ interface CellData {
 }
 
 // Higher-priority kinds win for a given day's dominant indicator.
-const KIND_PRIORITY: Kind[] = ['FLIGHT', 'DEADHEAD', 'REJECT', 'GROUND', 'TRAIN', 'MED', 'PASS', 'MEET', 'RSV', 'OFF', 'OTHER'];
+const KIND_PRIORITY: Kind[] = ['FLIGHT', 'DEADHEAD', 'REJECT', 'GROUND', 'TRAIN', 'MED', 'PASS', 'MEET', 'RSV', 'LAYOVER', 'OFF', 'OTHER'];
 function dominantKind(events: RosterRow[]): Kind {
   if (!events.length) return 'NONE';
   for (const k of KIND_PRIORITY) {
@@ -165,6 +165,14 @@ const CELL_STYLES: Record<Exclude<Kind, 'NONE'>, CellStyle> = {
     // user can tell at a glance they are not the operating crew.
     bg: 'bg-gradient-to-br from-violet-400 via-violet-600 to-fuchsia-700 text-white shadow-lg shadow-violet-900/25 ring-1 ring-violet-300/40',
     text: '', iconColor: '', Icon: Armchair, label: 'D/H',
+  },
+  LAYOVER: {
+    // Soft teal so a layover (rest at outstation) reads as restful but is
+    // still visually distinct from a Home-Base OFF day (amber).
+    bg: 'bg-gradient-to-br from-teal-100 to-cyan-200 dark:from-teal-950/55 dark:to-cyan-900/40 ring-1 ring-teal-300/40 dark:ring-teal-700/40',
+    text: 'text-teal-800 dark:text-teal-200',
+    iconColor: 'text-teal-700 dark:text-teal-300',
+    Icon: Palmtree, label: 'L/O',
   },
   TRAIN: {
     bg: 'bg-gradient-to-br from-sky-100 to-sky-200 dark:from-sky-950/55 dark:to-sky-900/40 ring-1 ring-sky-300/40 dark:ring-sky-700/40',
@@ -309,6 +317,7 @@ function Legend() {
   const items: Array<{ color: string; label: string }> = [
     { color: 'bg-emerald-500', label: 'پرواز' },
     { color: 'bg-violet-500',  label: 'D/H'   },
+    { color: 'bg-teal-500',    label: 'L/O'   },
     { color: 'bg-sky-500',     label: 'دوره'  },
     { color: 'bg-rose-500',    label: 'پزشکی' },
     { color: 'bg-cyan-500',    label: 'گذرنامه' },

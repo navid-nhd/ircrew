@@ -7,7 +7,7 @@ export interface Credentials {
 }
 
 export type DutyKind =
-  | 'OFF' | 'RSV' | 'FLIGHT' | 'DEADHEAD' | 'TRAIN' | 'MED' | 'PASS' | 'MEET'
+  | 'OFF' | 'RSV' | 'FLIGHT' | 'DEADHEAD' | 'LAYOVER' | 'TRAIN' | 'MED' | 'PASS' | 'MEET'
   | 'REJECT' | 'GROUND' | 'OTHER';
 
 export interface RosterRow {

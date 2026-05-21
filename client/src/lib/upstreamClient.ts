@@ -163,9 +163,15 @@ function classifyFlt(fltNo: string): { kind: DutyKind; code: string; label: stri
   if (/^(MTG|MEET(?:ING)?)/.test(upper))        return { kind: 'MEET',   code: 'MTG', label: f || 'Meeting' };
   if (/^(REJ|SCK|SICK|REF|REFUSE)/.test(upper)) return { kind: 'REJECT', code: upper.split(/\s+/)[0], label: f || 'Rejected' };
   if (/^(GND|GROUND|GR\b)/.test(upper))         return { kind: 'GROUND', code: 'GND', label: f || 'Grounded' };
-  // Dead-head / Positioning flight (crew flies as passenger to reposition).
-  // Iran Air formats: "DH715" / "D/H 715" / "IR715/DH". Pre-empt FLIGHT match.
-  if (/(^|\s|\/)D[\s\/.-]*H\b/.test(upper) || /^DH\s*\d/.test(upper)) {
+  // Layover: forced off-day during a multi-day mission AWAY from Home Base.
+  if (/^(LAYOVER|L\/O|LO\b)/.test(upper)) {
+    return { kind: 'LAYOVER', code: 'L/O', label: f || 'Layover' };
+  }
+  // Dead-head / Positioning (crew flies as passenger). DH715 / D/H 715 /
+  // IR715/DH / POS — all classify the same way. Pre-empt FLIGHT match.
+  if (/^POS(\b|\d)/.test(upper) ||
+      /(^|\s|\/)D[\s\/.-]*H\b/.test(upper) ||
+      /^DH\s*\d/.test(upper)) {
     const m2 = upper.match(/(\d{2,5})/);
     return { kind: 'DEADHEAD', code: m2 ? 'DH' + m2[1] : 'DH', label: f };
   }

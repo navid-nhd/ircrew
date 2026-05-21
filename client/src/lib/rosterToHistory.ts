@@ -45,6 +45,7 @@ const classifyFdpWindow = (startIso: string, endIso: string) => {
 const ROSTER_TO_DUTY: Partial<Record<RosterRow['kind'], DutyKind>> = {
   FLIGHT:   'fdp',
   DEADHEAD: 'positioning',  // Crew flies as passenger — counts as duty, not FDP block time
+  LAYOVER:  'rest',         // Mid-mission off day at outstation — NOT a HB day-off
   OFF:      'day_off',
   RSV:      'reserve',      // Reserve roster slot; the engine treats this differently from SBF
   TRAIN:    'training',

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Plane, BedDouble, ShieldAlert, MapPin, ChevronDown, Loader2, Users, AlertTriangle,
-  GraduationCap, Stethoscope, BookUser, Users2, Ban, Briefcase, Archive, Info, Armchair,
+  GraduationCap, Stethoscope, BookUser, Users2, Ban, Briefcase, Archive, Info, Armchair, Palmtree,
 } from 'lucide-react';
 import type { Credentials, RosterRow, CrewResponse } from '../lib/types';
 import { parseDepArrCell, weekdayFa, jalaliShort, toFaDigits, cn } from '../lib/utils';
@@ -51,6 +51,15 @@ const KIND = {
     icon: Armchair, label: 'دِدهد (D/H)',
     cell: 'bg-gradient-to-br from-violet-100 to-fuchsia-50 dark:from-violet-950/40 dark:to-fuchsia-900/20 ring-1 ring-violet-300/40 dark:ring-violet-700/40',
     glow: 'shadow-[0_8px_28px_-10px_rgba(139,92,246,0.35)]',
+  },
+  LAYOVER: {
+    // Forced rest at the destination during a multi-day mission. NOT a
+    // home-base day-off (so it shouldn't count toward 7-day/month rule).
+    accent: 'from-teal-400 to-cyan-600',
+    pill: 'bg-gradient-to-br from-teal-100 to-cyan-200 text-teal-800 dark:from-teal-950/55 dark:to-cyan-900/40 dark:text-teal-200',
+    icon: Palmtree, label: 'لِی‌اُور (L/O)',
+    cell: 'bg-gradient-to-br from-teal-100 to-cyan-50 dark:from-teal-950/40 dark:to-cyan-900/20 ring-1 ring-teal-300/40 dark:ring-teal-700/40',
+    glow: '',
   },
   TRAIN: {
     accent: 'from-sky-400 to-blue-600',

@@ -207,10 +207,19 @@ function classifyFlt(fltNo) {
   if (/^(MTG|MEET(?:ING)?)/.test(upper))      return { status: 'MEET',   code: 'MTG', label: f || 'Meeting' };
   if (/^(REJ|SCK|SICK|REF|REFUSE)/.test(upper)) return { status: 'REJECT', code: upper.split(/\s+/)[0], label: f || 'Rejected' };
   if (/^(GND|GROUND|GR\b)/.test(upper))         return { status: 'GROUND', code: 'GND', label: f || 'Grounded' };
+  // Layover: forced off-day during a multi-day mission AWAY from Home Base.
+  // Iran Air marks these as "LAYOVER" or "L/O". NOT the same as OFF (which
+  // is a day-off at HB and counts toward the 7/month rule).
+  if (/^(LAYOVER|L\/O|LO\b)/.test(upper)) {
+    return { status: 'LAYOVER', code: 'L/O', label: f || 'Layover' };
+  }
   // Dead-head / Positioning: crew flies as passenger to reposition for a
-  // mission elsewhere. Iran Air marks these as "DH715", "D/H 715", or
-  // "IR715/DH". Always pre-empts the bare-FLIGHT match below.
-  if (/(^|\s|\/)D[\s\/.-]*H\b/.test(upper) || /^DH\s*\d/.test(upper)) {
+  // mission elsewhere. Iran Air marks these as "DH715", "D/H 715",
+  // "IR715/DH", or "POS" (Positioning). Always pre-empts the bare-FLIGHT
+  // match below.
+  if (/^POS(\b|\d)/.test(upper) ||
+      /(^|\s|\/)D[\s\/.-]*H\b/.test(upper) ||
+      /^DH\s*\d/.test(upper)) {
     const m2 = upper.match(/(\d{2,5})/);
     return { status: 'DEADHEAD', code: m2 ? 'DH' + m2[1] : 'DH', label: f };
   }
