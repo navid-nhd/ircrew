@@ -22,14 +22,39 @@ export default function ProposedFlightPanel({ proposed, onChange }: Props) {
     onChange({ ...proposed, reportingTimeLocal: iso, referenceTimeHHMM: hhmm });
   };
 
+  // Reporting-time offset before ETD, per OM-A table 7.7:
+  //   domestic NB  → 1:00
+  //   domestic WB  → 1:30
+  //   international → 2:00
+  const reportingOffsetMin = (): number => {
+    if (proposed.scope === 'international') return 120;
+    return proposed.body === 'wide' ? 90 : 60;
+  };
+
+  // When the user picks ETD, auto-set Reporting Time = ETD − offset. The
+  // user can still override Reporting afterwards (the next ETD edit will
+  // recompute it again — that's the intended behavior). Reference Time also
+  // updates from the new Reporting.
+  const onDeparture = (iso: string) => {
+    const etd = new Date(iso);
+    const reporting = new Date(etd.getTime() - reportingOffsetMin() * 60_000);
+    const hhmm = `${String(reporting.getHours()).padStart(2, '0')}:${String(reporting.getMinutes()).padStart(2, '0')}`;
+    onChange({
+      ...proposed,
+      estimatedDepartureLocal: iso,
+      reportingTimeLocal: reporting.toISOString(),
+      referenceTimeHHMM: hhmm,
+    });
+  };
+
   return (
     <div className="card">
       <h2>۳. مشخصات پرواز پیشنهادی</h2>
       <div className="help" style={{ lineHeight: 1.85 }}>
-        <b>راهنما:</b> برای محاسبهٔ اولیه فقط چهار چیز لازم است — <b>زمان حضور</b>،
-        <b> ETD</b>، <b>ETA</b> و <b>تعداد سکتور</b>. بقیهٔ تنظیمات (Augmentation،
-        Extension، Standby، Acclimatization) پیش‌فرض دارند و اگر پروازت موارد خاص ندارد
-        می‌توانی نادیده‌شان بگیری. روی علامت <b>?</b> کنار هر فیلد بزن تا توضیح کامل ببینی.
+        <b>راهنما:</b> فقط کافی است <b>ETD</b>، <b>ETA</b> و <b>تعداد سکتور</b> را وارد کنی.
+        <b> زمان حضور</b> به‌طور خودکار بر اساس Scope و نوع هواپیما محاسبه می‌شود
+        (داخلی NB ۱h، داخلی WB ۱:۳۰h، بین‌المللی ۲h قبل از ETD) — در صورت نیاز
+        می‌توانی دستی تغییرش بدهی. روی علامت <b>?</b> کنار هر فیلد بزن تا توضیح کامل ببینی.
       </div>
 
       <h3>برچسب و زمان‌های پرواز</h3>
@@ -50,7 +75,7 @@ export default function ProposedFlightPanel({ proposed, onChange }: Props) {
             </>} />
             ETD — زمان تخمینی حرکت
           </label>
-          <PersianDateTime value={proposed.estimatedDepartureLocal ?? proposed.reportingTimeLocal} onChange={iso => set('estimatedDepartureLocal', iso)} />
+          <PersianDateTime value={proposed.estimatedDepartureLocal ?? proposed.reportingTimeLocal} onChange={onDeparture} />
         </div>
         <div className="field">
           <label>

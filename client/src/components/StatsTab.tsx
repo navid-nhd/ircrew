@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import {
-  Trophy, Plane, Clock, MapPin, BarChart3, Moon, Calendar, Sparkles, Globe, TrendingUp,
+  Trophy, Plane, Clock, MapPin, BarChart3, Moon, Calendar, Sparkles, Globe, TrendingUp, PieChart,
 } from 'lucide-react';
 import type { Credentials } from '../lib/types';
 import { listVault, type VaultRecord } from '../lib/recordsVault';
@@ -10,14 +10,17 @@ interface Props {
   creds: Credentials;
 }
 
-type PeriodKey = '1m' | '3m' | '6m' | '12m' | 'all';
+type PeriodKey = 'this_month' | 'last_month' | '3m' | '6m' | 'ytd' | '12m' | '24m' | 'all';
 
 const PERIODS: Array<{ key: PeriodKey; label: string; months: number | null }> = [
-  { key: '1m',  label: '۱ ماه',  months: 1  },
-  { key: '3m',  label: '۳ ماه',  months: 3  },
-  { key: '6m',  label: '۶ ماه',  months: 6  },
-  { key: '12m', label: '۱۲ ماه', months: 12 },
-  { key: 'all', label: 'همه',    months: null },
+  { key: 'this_month', label: 'این ماه',   months: null },
+  { key: 'last_month', label: 'ماه قبل',   months: null },
+  { key: '3m',         label: '۳ ماهه',    months: 3 },
+  { key: '6m',         label: '۶ ماهه',    months: 6 },
+  { key: 'ytd',        label: 'از اول سال', months: null },
+  { key: '12m',        label: '۱۲ ماهه',   months: 12 },
+  { key: '24m',        label: '۲۴ ماهه',   months: 24 },
+  { key: 'all',        label: 'همه',       months: null },
 ];
 
 // "Year in review" style stats page driven entirely from the 24-month vault.
@@ -31,6 +34,7 @@ export function StatsTab({ creds }: Props) {
   const summary = useMemo(() => summarizeRecords(records), [records]);
   const metrics = useMemo(() => deriveMetrics(records), [records]);
   const monthSeries = useMemo(() => buildMonthlySeries(records, period), [records, period]);
+  const kindSlices = useMemo(() => buildKindBreakdown(records), [records]);
 
   if (allRecords.length === 0) {
     return (
@@ -48,13 +52,13 @@ export function StatsTab({ creds }: Props) {
           <Calendar className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
           <span className="text-[11.5px] font-extrabold opacity-75">بازهٔ آماری</span>
         </div>
-        <div className="grid grid-cols-5 gap-1">
+        <div className="grid grid-cols-4 gap-1">
           {PERIODS.map((p) => (
             <button
               key={p.key}
               onClick={() => setPeriod(p.key)}
               className={cn(
-                'rounded-xl py-1.5 text-[11.5px] font-extrabold transition-all',
+                'rounded-xl py-1.5 text-[11px] font-extrabold transition-all',
                 period === p.key
                   ? 'bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-md shadow-brand-700/30'
                   : 'bg-slate-100 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700/60',
@@ -116,6 +120,16 @@ export function StatsTab({ creds }: Props) {
             </div>
           </div>
           <MonthlyChart series={monthSeries} />
+        </div>
+      )}
+
+      {/* KIND BREAKDOWN — donut + legend */}
+      {kindSlices.length > 0 && (
+        <div className="surface rounded-2xl p-3.5 text-slate-900 dark:text-slate-100 animate-rise">
+          <SectionHead icon={PieChart} title="ترکیب ساعت Duty" />
+          <div className="mt-3">
+            <KindDonut slices={kindSlices} />
+          </div>
         </div>
       )}
 
@@ -230,14 +244,36 @@ export function StatsTab({ creds }: Props) {
 
 const WEEKDAY_LABELS = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
 
-// Filter the vault by the selected period (months back from latest record's
-// month). "all" returns the whole vault.
+// Filter the vault by the selected period. Rolling N-month windows are
+// anchored to the LATEST record so an inactive month doesn't blank the page;
+// calendar windows (this_month / last_month / ytd) use the latest record's
+// year & month so the user sees data even when they're not flying right now.
 function filterByPeriod(records: VaultRecord[], period: PeriodKey): VaultRecord[] {
   if (period === 'all' || records.length === 0) return records;
-  const months = PERIODS.find((p) => p.key === period)?.months ?? 12;
-  // Anchor the window to the latest record so an inactive month doesn't blank
-  // the page; users on holiday still see their last N months of activity.
   const latest = new Date(records[records.length - 1].start);
+
+  if (period === 'this_month') {
+    const from = new Date(latest.getFullYear(), latest.getMonth(), 1).getTime();
+    const to = new Date(latest.getFullYear(), latest.getMonth() + 1, 1).getTime();
+    return records.filter((r) => {
+      const t = new Date(r.start).getTime();
+      return t >= from && t < to;
+    });
+  }
+  if (period === 'last_month') {
+    const from = new Date(latest.getFullYear(), latest.getMonth() - 1, 1).getTime();
+    const to = new Date(latest.getFullYear(), latest.getMonth(), 1).getTime();
+    return records.filter((r) => {
+      const t = new Date(r.start).getTime();
+      return t >= from && t < to;
+    });
+  }
+  if (period === 'ytd') {
+    const from = new Date(latest.getFullYear(), 0, 1).getTime();
+    return records.filter((r) => new Date(r.start).getTime() >= from);
+  }
+
+  const months = PERIODS.find((p) => p.key === period)?.months ?? 12;
   const cutoff = new Date(latest.getFullYear(), latest.getMonth() - months + 1, 1).getTime();
   return records.filter((r) => new Date(r.start).getTime() >= cutoff);
 }
@@ -276,7 +312,7 @@ function summarizeRecords(list: VaultRecord[]): RecordSummary {
 
 interface MonthBucket { key: string; label: string; hours: number; flights: number }
 
-// Build a continuous monthly series so empty months still get a (zero) bar.
+// Build a continuous monthly series so empty months still get a (zero) point.
 function buildMonthlySeries(records: VaultRecord[], period: PeriodKey): MonthBucket[] {
   if (records.length === 0) return [];
   const tally = new Map<string, { hours: number; flights: number }>();
@@ -290,12 +326,23 @@ function buildMonthlySeries(records: VaultRecord[], period: PeriodKey): MonthBuc
     tally.set(k, cur);
   }
   const latest = new Date(records[records.length - 1].start);
-  const monthsBack = period === 'all'
-    ? Math.min(24, monthsBetween(new Date(records[0].start), latest) + 1)
-    : (PERIODS.find((p) => p.key === period)?.months ?? 12);
+  const earliest = new Date(records[0].start);
+
+  // How many months to render? Calendar-anchored periods get a fixed span,
+  // rolling N-month periods get N, "all" walks from the earliest record.
+  let monthsBack: number;
+  if (period === 'this_month' || period === 'last_month') monthsBack = 1;
+  else if (period === 'ytd') monthsBack = latest.getMonth() + 1;
+  else if (period === 'all') monthsBack = Math.min(24, monthsBetween(earliest, latest) + 1);
+  else monthsBack = PERIODS.find((p) => p.key === period)?.months ?? 12;
+
+  const anchor = period === 'last_month'
+    ? new Date(latest.getFullYear(), latest.getMonth() - 1, 1)
+    : latest;
+
   const out: MonthBucket[] = [];
   for (let i = monthsBack - 1; i >= 0; i--) {
-    const d = new Date(latest.getFullYear(), latest.getMonth() - i, 1);
+    const d = new Date(anchor.getFullYear(), anchor.getMonth() - i, 1);
     const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     const v = tally.get(k) ?? { hours: 0, flights: 0 };
     out.push({
@@ -308,70 +355,248 @@ function buildMonthlySeries(records: VaultRecord[], period: PeriodKey): MonthBuc
   return out;
 }
 
+// Hours-by-kind breakdown for the donut chart. Mirrors summarize but keeps
+// each duty category separate.
+interface KindSlice { key: string; label: string; hours: number; color: string }
+function buildKindBreakdown(records: VaultRecord[]): KindSlice[] {
+  const tally = new Map<string, number>();
+  for (const r of records) {
+    const dur = (new Date(r.end).getTime() - new Date(r.start).getTime()) / 3_600_000;
+    if (['fdp', 'positioning', 'training', 'admin', 'airport_sb'].includes(r.kind)) {
+      tally.set(r.kind, (tally.get(r.kind) ?? 0) + dur);
+    }
+  }
+  const palette: Record<string, { label: string; color: string }> = {
+    fdp:          { label: 'پرواز',       color: '#10B981' },
+    positioning:  { label: 'پوزیشن',      color: '#0EA5E9' },
+    training:     { label: 'تمرین',       color: '#8B5CF6' },
+    admin:        { label: 'اداری',       color: '#F59E0B' },
+    airport_sb:   { label: 'استندبای',    color: '#EC4899' },
+  };
+  return [...tally.entries()]
+    .map(([k, h]) => ({ key: k, label: palette[k].label, hours: Math.round(h * 10) / 10, color: palette[k].color }))
+    .filter((s) => s.hours > 0)
+    .sort((a, b) => b.hours - a.hours);
+}
+
 function monthsBetween(a: Date, b: Date): number {
   return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
 }
 
 const PERSIAN_MONTHS_SHORT = ['ژان', 'فور', 'مار', 'آپر', 'می', 'ژون', 'ژوی', 'آگو', 'سپ', 'اکت', 'نوا', 'دس'];
 
-// Pure-SVG bar chart — horizontal sliding feel via RTL layout.
+// Smooth-curve area chart with axis ticks, dots, and dual hover detail.
+// Cubic-bezier smoothing makes the trend obvious at a glance, and the
+// gradient fill + flight-count bars overlay turn it into a real dashboard
+// instead of a flat bar block.
 function MonthlyChart({ series }: { series: MonthBucket[] }) {
   const max = Math.max(...series.map((m) => m.hours), 1);
+  const maxFlights = Math.max(...series.map((m) => m.flights), 1);
   const [hover, setHover] = useState<number | null>(null);
+
+  // Chart geometry — keep the SVG viewBox in lockstep with the data so the
+  // hit-test math (mouse → bucket index) stays trivial.
+  const W = Math.max(series.length * 40, 200);
+  const H = 160;
+  const padL = 28;
+  const padR = 8;
+  const padT = 18;
+  const padB = 28;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+  const stepX = innerW / Math.max(1, series.length - 1);
+
+  const points = series.map((m, i) => ({
+    x: padL + i * stepX,
+    y: padT + innerH - (m.hours / max) * innerH,
+    barH: (m.flights / maxFlights) * innerH * 0.45,
+  }));
+
+  // Smooth path via Catmull–Rom → cubic Bézier with a tame tension.
+  const pathD = (() => {
+    if (points.length < 2) return '';
+    const parts: string[] = [`M ${points[0].x} ${points[0].y}`];
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[i - 1] ?? points[i];
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const p3 = points[i + 2] ?? p2;
+      const t = 0.22;
+      const c1x = p1.x + (p2.x - p0.x) * t;
+      const c1y = p1.y + (p2.y - p0.y) * t;
+      const c2x = p2.x - (p3.x - p1.x) * t;
+      const c2y = p2.y - (p3.y - p1.y) * t;
+      parts.push(`C ${c1x} ${c1y}, ${c2x} ${c2y}, ${p2.x} ${p2.y}`);
+    }
+    return parts.join(' ');
+  })();
+  const areaD = pathD ? `${pathD} L ${padL + innerW} ${padT + innerH} L ${padL} ${padT + innerH} Z` : '';
+
+  // Y-axis ticks at 0/25/50/75/100% of max.
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((g) => ({
+    y: padT + innerH - g * innerH,
+    label: Math.round(max * g),
+  }));
+
+  // Linear hit-test for hover (mouseover SVG → nearest bucket).
+  const onMove = (e: ReactMouseEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * W - padL;
+    const idx = Math.max(0, Math.min(series.length - 1, Math.round(x / stepX)));
+    setHover(idx);
+  };
+
   return (
     <div className="mt-3">
-      <div className="relative h-32" dir="ltr">
-        <svg viewBox={`0 0 ${series.length * 36} 130`} preserveAspectRatio="none" className="w-full h-full">
+      <div className="relative" style={{ height: H + 8 }} dir="ltr">
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="none"
+          className="w-full h-full block"
+          onMouseMove={onMove}
+          onMouseLeave={() => setHover(null)}
+        >
           <defs>
-            <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#34D399" />
-              <stop offset="100%" stopColor="#047857" />
+            <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor="#10B981" stopOpacity="0.55" />
+              <stop offset="55%"  stopColor="#10B981" stopOpacity="0.18" />
+              <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
             </linearGradient>
-            <linearGradient id="barGradHot" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#FBBF24" />
-              <stop offset="100%" stopColor="#DC2626" />
+            <linearGradient id="barFlightGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor="#0EA5E9" stopOpacity="0.85" />
+              <stop offset="100%" stopColor="#0369A1" stopOpacity="0.70" />
             </linearGradient>
           </defs>
-          {/* grid lines */}
-          {[0.25, 0.5, 0.75, 1].map((g) => (
-            <line
-              key={g}
-              x1={0} x2={series.length * 36}
-              y1={110 - 100 * g} y2={110 - 100 * g}
-              stroke="currentColor" strokeOpacity={0.10} strokeDasharray="2,3"
+
+          {/* y-grid + tick labels */}
+          {ticks.map((t, i) => (
+            <g key={i}>
+              <line x1={padL} x2={padL + innerW} y1={t.y} y2={t.y}
+                stroke="currentColor" strokeOpacity="0.08" strokeDasharray="2,3" />
+              <text x={padL - 4} y={t.y + 3} fontSize="8.5" fontWeight="700"
+                fill="currentColor" opacity="0.55" textAnchor="end">
+                {toFaDigits(String(t.label))}
+              </text>
+            </g>
+          ))}
+
+          {/* flight-count bars (secondary metric, bottom-anchored, light blue) */}
+          {points.map((p, i) => (
+            <rect key={`b${i}`}
+              x={p.x - 5} width={10}
+              y={padT + innerH - p.barH}
+              height={p.barH}
+              rx={2}
+              fill="url(#barFlightGrad)"
+              opacity={hover === null || hover === i ? 0.85 : 0.35}
             />
           ))}
-          {series.map((m, i) => {
-            const h = Math.max(2, Math.round((m.hours / max) * 100));
-            const x = i * 36 + 4;
-            const y = 110 - h;
-            const hot = m.hours > max * 0.85;
-            return (
-              <g key={m.key} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} style={{ cursor: 'pointer' }}>
-                <rect x={x} y={y} width={28} height={h} rx={4}
-                  fill={hot ? 'url(#barGradHot)' : 'url(#barGrad)'}
-                  opacity={hover === null || hover === i ? 1 : 0.45}
-                />
-                {hover === i && (
-                  <text x={x + 14} y={y - 4} textAnchor="middle"
-                    fontSize="9" fontWeight="800" fill="currentColor">
-                    {toFaDigits(m.hours.toFixed(1))}h
-                  </text>
-                )}
-                <text x={x + 14} y={124} textAnchor="middle"
-                  fontSize="8.5" fontWeight="700" fill="currentColor" opacity={0.65}>
-                  {m.label}
-                </text>
-              </g>
-            );
-          })}
+
+          {/* smooth area + line */}
+          {areaD && <path d={areaD} fill="url(#areaGrad)" />}
+          {pathD && <path d={pathD} fill="none" stroke="#059669" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />}
+
+          {/* data dots */}
+          {points.map((p, i) => (
+            <g key={`d${i}`}>
+              <circle cx={p.x} cy={p.y} r={hover === i ? 5 : 3.2}
+                fill="#FFFFFF" stroke="#059669" strokeWidth="2" />
+            </g>
+          ))}
+
+          {/* x-axis month labels */}
+          {series.map((m, i) => (
+            <text key={`x${i}`}
+              x={points[i].x} y={H - 6}
+              textAnchor="middle" fontSize="8.5" fontWeight="700"
+              fill="currentColor" opacity={hover === i ? 0.95 : 0.55}>
+              {m.label}
+            </text>
+          ))}
+
+          {/* hover vertical guide */}
+          {hover !== null && (
+            <g>
+              <line x1={points[hover].x} x2={points[hover].x}
+                y1={padT} y2={padT + innerH}
+                stroke="#059669" strokeOpacity="0.45" strokeDasharray="2,3" />
+              <circle cx={points[hover].x} cy={points[hover].y} r={6}
+                fill="#10B981" fillOpacity="0.3" />
+            </g>
+          )}
         </svg>
       </div>
-      {hover !== null && (
-        <div className="mt-1 text-center text-[10.5px] font-bold opacity-80 tabular-nums">
-          {series[hover].label} · {toFaDigits(series[hover].flights)} پرواز · {toFaDigits(series[hover].hours.toFixed(1))} ساعت
+
+      {/* Hover detail strip — empty space takes the same height to avoid layout jumps. */}
+      <div className="mt-1 h-5 text-center text-[10.5px] font-extrabold tabular-nums">
+        {hover !== null ? (
+          <>
+            <span className="text-slate-700 dark:text-slate-200">{series[hover].label}</span>
+            <span className="opacity-50 mx-1.5">·</span>
+            <span className="text-emerald-600 dark:text-emerald-400">{toFaDigits(series[hover].hours.toFixed(1))} ساعت</span>
+            <span className="opacity-50 mx-1.5">·</span>
+            <span className="text-sky-600 dark:text-sky-400">{toFaDigits(series[hover].flights)} پرواز</span>
+          </>
+        ) : (
+          <span className="opacity-50">روی نمودار حرکت کن</span>
+        )}
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center justify-center gap-4 mt-1 text-[10px] font-bold opacity-70">
+        <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-emerald-500 inline-block rounded" /> ساعت پرواز</span>
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-sky-500 inline-block rounded-sm" /> تعداد پرواز</span>
+      </div>
+    </div>
+  );
+}
+
+// Donut chart for hours-by-kind. Pure SVG, animated via stroke-dasharray.
+function KindDonut({ slices }: { slices: KindSlice[] }) {
+  const total = slices.reduce((s, x) => s + x.hours, 0);
+  if (total === 0) return null;
+  const R = 56;
+  const C = 2 * Math.PI * R;
+  let offset = 0;
+  return (
+    <div className="flex items-center gap-4">
+      <div className="relative shrink-0" style={{ width: 140, height: 140 }}>
+        <svg viewBox="0 0 140 140" className="w-full h-full -rotate-90">
+          <circle cx="70" cy="70" r={R} fill="none"
+            stroke="currentColor" strokeOpacity="0.06" strokeWidth="18" />
+          {slices.map((s) => {
+            const len = (s.hours / total) * C;
+            const dash = `${len} ${C - len}`;
+            const el = (
+              <circle key={s.key}
+                cx="70" cy="70" r={R} fill="none"
+                stroke={s.color} strokeWidth="18"
+                strokeDasharray={dash}
+                strokeDashoffset={-offset}
+                strokeLinecap="butt"
+              />
+            );
+            offset += len;
+            return el;
+          })}
+        </svg>
+        <div className="absolute inset-0 grid place-items-center pointer-events-none rotate-0">
+          <div className="text-center">
+            <div className="text-[20px] font-black leading-none tabular-nums">{toFaDigits(Math.round(total))}</div>
+            <div className="text-[9.5px] font-bold opacity-65 mt-0.5">ساعت کل</div>
+          </div>
         </div>
-      )}
+      </div>
+      <div className="flex-1 min-w-0 space-y-1.5">
+        {slices.map((s) => (
+          <div key={s.key} className="flex items-center gap-2 text-[11px]">
+            <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: s.color }} />
+            <span className="font-extrabold flex-1 truncate">{s.label}</span>
+            <span className="tabular-nums font-bold opacity-80">{toFaDigits(s.hours.toFixed(1))}h</span>
+            <span className="tabular-nums opacity-50 text-[10px] w-9 text-left">{toFaDigits(Math.round((s.hours / total) * 100))}٪</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import {
-  Coffee, ShieldCheck, AlertTriangle, Plus, X,
+  Coffee, AlertTriangle, Plus, X,
   Clock, ChevronRight, Sunrise, Sunset, Waves, SlidersHorizontal,
 } from 'lucide-react';
-import type { DutyEntry, ProposedFlight, RuleEngineResult } from '../ftl/rules/types';
+import type { DutyEntry, ProposedFlight } from '../ftl/rules/types';
 import { evaluate } from '../ftl/rules/engine';
 import { cn, toFaDigits } from '../lib/utils';
 
@@ -25,8 +25,9 @@ interface Props {
   /** Update the active candidate. Required so toggling a standby chip can
    *  write precededByStandbyType/Hours onto the candidate. */
   onCandidateChange: (next: ProposedFlight) => void;
-  /** Latest evaluation for the active candidate. */
-  result: RuleEngineResult;
+  /** Latest evaluation — currently only consumed via evalProfile for the
+   *  rest-before preview inside the custom editor. */
+  result?: unknown;
   evalProfile: Parameters<typeof evaluate>[0]['profile'];
 }
 
@@ -187,13 +188,14 @@ const isStandby = (k: AdjKind): boolean => STANDBY_KINDS.includes(k);
 // can find/clear it without colliding with the preset SBF chip.
 function buildCustomSbEntry(
   candidateIdx: number,
+  position: 'before' | 'after',
   startIso: string,
   durationH: number,
 ): DutyEntry {
   const start = new Date(startIso);
   const end = new Date(start.getTime() + durationH * 3_600_000);
   return {
-    id: adjId(candidateIdx, 'sbc', 'before'),
+    id: adjId(candidateIdx, 'sbc', position),
     kind: 'sbf',
     start: start.toISOString(),
     end: end.toISOString(),
@@ -237,7 +239,7 @@ function toLocalInputValue(d: Date): string {
 
 export function AdjacentDuties({
   candidates, activeIndex, history, onHistoryChange, onCandidateChange,
-  result, evalProfile,
+  evalProfile,
 }: Props) {
   const candidate = candidates[activeIndex];
 
@@ -256,11 +258,38 @@ export function AdjacentDuties({
     return defaultCustomSb(candidate.reportingTimeLocal).durationH;
   });
 
+  // Same editor state, mirrored for the AFTER slot. Default start = end of
+  // candidate FDP + 12h rest, default duration = 14h (a typical SBF).
+  const existingCustomAfter = findAdj(history, activeIndex, 'sbc', 'after');
+  const [customAfterOpen, setCustomAfterOpen] = useState<boolean>(!!existingCustomAfter);
+  const defaultAfterStart = useMemo(() => {
+    const arrival = candidate.estimatedArrivalLocal
+      ? new Date(candidate.estimatedArrivalLocal)
+      : new Date(new Date(candidate.reportingTimeLocal).getTime() + 8 * 3_600_000);
+    const restEnd = new Date(arrival.getTime() + 12 * 3_600_000);
+    restEnd.setMinutes(0, 0, 0);
+    return restEnd;
+  }, [candidate.estimatedArrivalLocal, candidate.reportingTimeLocal]);
+  const [customAfterStart, setCustomAfterStart] = useState<string>(() => {
+    if (existingCustomAfter) return toLocalInputValue(new Date(existingCustomAfter.start));
+    return toLocalInputValue(defaultAfterStart);
+  });
+  const [customAfterDuration, setCustomAfterDuration] = useState<number>(() => {
+    if (existingCustomAfter) {
+      return Math.round(((new Date(existingCustomAfter.end).getTime() - new Date(existingCustomAfter.start).getTime()) / 3_600_000) * 10) / 10;
+    }
+    return 14;
+  });
+
   const toggle = (kind: AdjKind, position: 'before' | 'after') => {
     // Custom standby has its own editor — clicking the chip just opens/closes
     // the panel without creating an entry.
     if (kind === 'sbc' && position === 'before') {
       setCustomOpen((o) => !o);
+      return;
+    }
+    if (kind === 'sbc' && position === 'after') {
+      setCustomAfterOpen((o) => !o);
       return;
     }
 
@@ -315,39 +344,6 @@ export function AdjacentDuties({
     }
   };
 
-  const restCheck = result.checks.find((c) => c.id === 'rest-before');
-  const restAvailable = parseHFromText(restCheck?.value);
-  const restRequired = parseHFromText(restCheck?.limit);
-
-  // Live preview — what would the rest-before number become for each
-  // possible "before" choice? Cheap because evaluate() is pure.
-  const previewFor = useMemo(() => {
-    const make = (k: AdjKind | null) => {
-      if (k === null) return result;
-      const base = history.filter((h) => {
-        for (const x of ['day_off', 'sba', 'sbb', 'sbf'] as AdjKind[]) {
-          if (h.id === adjId(activeIndex, x, 'before')) return false;
-        }
-        return true;
-      });
-      const next = [...base, buildAdjEntry(candidate, k, 'before', activeIndex)];
-      let cand = candidate;
-      if (isStandby(k)) {
-        const sb = computeStandby(k as 'sba' | 'sbb' | 'sbf', candidate.reportingTimeLocal);
-        cand = { ...candidate, precededByStandbyType: 'home', precededByStandbyHours: Math.round(sb.sbHours * 10) / 10 };
-      } else {
-        cand = { ...candidate, precededByStandbyType: 'none', precededByStandbyHours: 0 };
-      }
-      return evaluate({ profile: evalProfile, history: next, proposed: cand });
-    };
-    return {
-      day_off: make('day_off'),
-      sba: make('sba'),
-      sbb: make('sbb'),
-      sbf: make('sbf'),
-    };
-  }, [history, candidate, activeIndex, evalProfile, result]);
-
   const beforeActive = {
     day_off: !!findAdj(history, activeIndex, 'day_off', 'before'),
     sba:     !!findAdj(history, activeIndex, 'sba', 'before'),
@@ -370,7 +366,7 @@ export function AdjacentDuties({
     // Re-construct an ISO string in LOCAL time (so the engine sees the same
     // wall-clock the user typed, regardless of TZ on the device).
     const localIso = new Date(startMs).toISOString();
-    const entry = buildCustomSbEntry(activeIndex, localIso, customDuration);
+    const entry = buildCustomSbEntry(activeIndex, 'before', localIso, customDuration);
     onHistoryChange([...cleared, entry]);
     const startHour = new Date(startMs).getHours();
     onCandidateChange({
@@ -421,7 +417,7 @@ export function AdjacentDuties({
       }
       return true;
     });
-    const entry = buildCustomSbEntry(activeIndex, new Date(startMs).toISOString(), customDuration);
+    const entry = buildCustomSbEntry(activeIndex, 'before', new Date(startMs).toISOString(), customDuration);
     const startHour = new Date(startMs).getHours();
     const cand: ProposedFlight = {
       ...candidate,
@@ -453,7 +449,54 @@ export function AdjacentDuties({
   const afterActive = {
     day_off: !!findAdj(history, activeIndex, 'day_off', 'after'),
     sbf:     !!findAdj(history, activeIndex, 'sbf', 'after'),
+    sbc:     !!existingCustomAfter,
   };
+
+  const customAfterEnd = useMemo(() => {
+    const ms = new Date(customAfterStart).getTime();
+    if (!Number.isFinite(ms)) return null;
+    return new Date(ms + customAfterDuration * 3_600_000);
+  }, [customAfterStart, customAfterDuration]);
+
+  const applyCustomAfterSb = () => {
+    const startMs = new Date(customAfterStart).getTime();
+    if (!Number.isFinite(startMs) || customAfterDuration <= 0) return;
+    const cleared = history.filter((h) => {
+      for (const k of ['day_off', 'sba', 'sbb', 'sbf', 'sbc'] as AdjKind[]) {
+        if (h.id === adjId(activeIndex, k, 'after')) return false;
+      }
+      return true;
+    });
+    const entry = buildCustomSbEntry(activeIndex, 'after', new Date(startMs).toISOString(), customAfterDuration);
+    onHistoryChange([...cleared, entry]);
+  };
+
+  const removeCustomAfterSb = () => {
+    if (!existingCustomAfter) return;
+    onHistoryChange(history.filter((h) => h.id !== existingCustomAfter.id));
+    setCustomAfterOpen(false);
+  };
+
+  // Sanity check for the AFTER standby: it must start AFTER the candidate
+  // FDP ends + Rest. We synthesise the candidate as a "prior duty" so the
+  // same checkLegality logic applies.
+  const customAfterLegality = useMemo<Legality>(() => {
+    const startMs = new Date(customAfterStart).getTime();
+    if (!Number.isFinite(startMs)) return { legal: true };
+    const reporting = new Date(candidate.reportingTimeLocal);
+    const arrival = candidate.estimatedArrivalLocal ? new Date(candidate.estimatedArrivalLocal) : null;
+    const endOfFdp = arrival ? new Date(arrival.getTime() + 30 * 60_000) : new Date(reporting.getTime() + 8 * 3_600_000);
+    const syntheticPrior: DutyEntry = {
+      id: `synth-prior-${activeIndex}`,
+      kind: 'fdp',
+      start: reporting.toISOString(),
+      end: endOfFdp.toISOString(),
+      startStation: candidate.departureStation,
+      endStation: candidate.arrivalStation,
+    };
+    const histWithCandidate = [...history.filter(h => h.id !== adjId(activeIndex, 'sbc', 'after')), syntheticPrior];
+    return checkLegality(histWithCandidate, new Date(startMs).toISOString(), candidate.arrivalStation === 'home', adjId(activeIndex, 'sbc', 'after'));
+  }, [customAfterStart, history, activeIndex, candidate]);
 
   return (
     <div className="space-y-3 text-slate-900 dark:text-slate-100" dir="rtl">
@@ -628,63 +671,112 @@ export function AdjacentDuties({
         <div className="h-px bg-slate-100 dark:bg-slate-800 my-3" />
 
         {/* Step 2 — after */}
-        <StepHeader n="۲" title="بعد از پرواز چه چیزی هست؟" hint="فقط برای ثبت — روی این پرواز اثر مستقیم ندارد" />
-        <div className="flex items-center gap-2 flex-wrap">
+        <StepHeader n="۲" title="بعد از پرواز چه چیزی هست؟" hint="برای برنامه‌ریزی روزهای بعد — مثلاً استندبای فردا" />
+        <div className="grid grid-cols-2 gap-1.5 mb-1.5">
           <Chip kind="day_off" on={afterActive.day_off} onClick={() => toggle('day_off', 'after')} />
           <Chip kind="sbf"     on={afterActive.sbf}     onClick={() => toggle('sbf',     'after')} />
         </div>
-      </div>
 
-      {/* Step 3 — result */}
-      <div className="surface rounded-2xl p-3.5 animate-rise">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="w-6 h-6 rounded-full bg-brand-500 text-white text-[11px] font-extrabold grid place-items-center shrink-0">۳</span>
-          <ShieldCheck className="w-4 h-4 text-brand-600 dark:text-brand-400" />
-          <div className="text-[12.5px] font-extrabold flex-1">حداقل Rest پیش از پرواز</div>
-          <RestBadge status={restCheck?.status} />
-        </div>
-        <div className="text-[11px] opacity-70 mb-3 leading-relaxed">
-          مقدار <b>«در دسترس»</b> باید بزرگ‌تر یا برابر <b>«موردنیاز»</b> باشد.
-          گزینه‌های بالا را تغییر بده تا تأثیرشان را زنده ببینی.
-        </div>
-        <div className="grid grid-cols-2 gap-2.5">
-          <RestStat label="در دسترس" value={restAvailable} unit="h" tone={
-            restAvailable != null && restRequired != null && restAvailable >= restRequired
-              ? 'good' : restAvailable != null ? 'bad' : 'neutral'
-          } />
-          <RestStat label="موردنیاز" value={restRequired} unit="h" tone="neutral" />
-        </div>
-        {restCheck?.message && (
-          <div className="mt-2.5 text-[11.5px] opacity-75 leading-relaxed">
-            {restCheck.message}
+        {/* Custom standby AFTER — same editor pattern as the BEFORE slot. */}
+        <button
+          onClick={() => toggle('sbc', 'after')}
+          className={cn(
+            'w-full mt-1.5 flex items-center gap-2 px-3 h-11 rounded-xl text-[11.5px] font-extrabold ring-1 transition-all active:scale-[0.98]',
+            afterActive.sbc
+              ? 'text-white bg-gradient-to-br from-emerald-400 to-teal-600 shadow-md ring-white/20'
+              : customAfterOpen
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 ring-emerald-300/60 dark:ring-emerald-700/50'
+                : 'bg-white/70 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 ring-slate-200 dark:ring-slate-700 hover:ring-emerald-500/40',
+          )}
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5" strokeWidth={2.4} />
+          <span className="flex-1 text-right">
+            {afterActive.sbc ? 'استندبای دلخواه پس از پرواز فعال است' : 'استندبای دلخواه برای روزهای بعد'}
+          </span>
+          {afterActive.sbc && existingCustomAfter && (
+            <span className="text-[10px] opacity-85 tabular-nums" dir="ltr">
+              {new Date(existingCustomAfter.start).toLocaleString('fa-IR', { dateStyle: 'short', timeStyle: 'short' })}
+            </span>
+          )}
+          <ChevronRight className={cn('w-3.5 h-3.5 transition-transform', customAfterOpen ? '-rotate-90' : '')} />
+        </button>
+
+        {customAfterOpen && (
+          <div className="rounded-xl bg-slate-50 dark:bg-slate-800/40 ring-1 ring-slate-200 dark:ring-slate-700 p-3 mt-2 space-y-2.5">
+            <div className="text-[11px] leading-relaxed opacity-80">
+              مثال: <b>استندبای فردا از ۰۴:۰۰ تا ۱۶:۰۰</b>. زمان شروع و مدت آن را وارد کن.
+              این اطلاعات برای محاسبهٔ FDP پرواز بعدی (و چک Rest پس از این پرواز) استفاده می‌شود.
+            </div>
+
+            <div>
+              <label className="block text-[10.5px] font-extrabold opacity-70 mb-1">شروع استندبای</label>
+              <input
+                type="datetime-local"
+                value={customAfterStart}
+                onChange={(e) => setCustomAfterStart(e.target.value)}
+                className="w-full h-10 rounded-lg bg-white dark:bg-slate-900 ring-1 ring-slate-300 dark:ring-slate-600 px-3 text-[12.5px] font-bold tabular-nums focus:ring-2 focus:ring-emerald-500 outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10.5px] font-extrabold opacity-70 mb-1">مدت (ساعت) — حداکثر ۱۶</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number" min={0.5} max={16} step={0.5}
+                  value={customAfterDuration}
+                  onChange={(e) => setCustomAfterDuration(Number(e.target.value))}
+                  className="flex-1 h-10 rounded-lg bg-white dark:bg-slate-900 ring-1 ring-slate-300 dark:ring-slate-600 px-3 text-[14px] font-extrabold tabular-nums text-center focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+                <input
+                  type="range" min={0.5} max={16} step={0.5}
+                  value={customAfterDuration}
+                  onChange={(e) => setCustomAfterDuration(Number(e.target.value))}
+                  className="flex-1 accent-emerald-500"
+                />
+              </div>
+              {customAfterEnd && (
+                <div className="text-[10.5px] opacity-65 mt-1 tabular-nums" dir="ltr">
+                  ends ≈ {customAfterEnd.toLocaleString('fa-IR', { dateStyle: 'short', timeStyle: 'short' })}
+                </div>
+              )}
+            </div>
+
+            {!customAfterLegality.legal && (
+              <div className="rounded-lg bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-300 dark:ring-rose-700/50 p-2.5 text-[11px] text-rose-900 dark:text-rose-100 leading-relaxed">
+                <div className="flex items-start gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0 text-rose-600 dark:text-rose-400" strokeWidth={2.6} />
+                  <div>
+                    این استندبای <b className="tabular-nums">{(customAfterLegality.shortHours ?? 0).toFixed(1)}h</b> پیش از پایان Rest قانونی پس از این پرواز شروع می‌شود.
+                    {customAfterLegality.earliestLegalIso && (
+                      <span className="block opacity-85 mt-0.5 tabular-nums" dir="ltr">
+                        earliest legal start: {new Date(customAfterLegality.earliestLegalIso).toLocaleString('fa-IR', { dateStyle: 'short', timeStyle: 'short' })}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={applyCustomAfterSb}
+                className="flex-1 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-700 text-white font-extrabold text-[12px] active:scale-[0.97] transition-transform shadow-md"
+              >
+                {existingCustomAfter ? 'بروزرسانی' : 'ذخیره'}
+              </button>
+              {existingCustomAfter && (
+                <button
+                  onClick={removeCustomAfterSb}
+                  className="h-10 px-4 rounded-lg bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-200 font-extrabold text-[12px] ring-1 ring-rose-300/60 dark:ring-rose-700/50 active:scale-[0.97] transition-transform"
+                >
+                  حذف
+                </button>
+              )}
+            </div>
           </div>
         )}
-
-        {/* Previews — what each choice would do, even when not selected. */}
-        <div className="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700/40">
-          <div className="text-[11px] font-bold opacity-70 mb-2 flex items-center gap-1">
-            <ChevronRight className="w-3 h-3" />
-            پیش‌نمایش اثر هر گزینه (قبل از پرواز)
-          </div>
-          <div className="grid grid-cols-2 gap-1.5">
-            {(['day_off', 'sba', 'sbb', 'sbf'] as const).map((k) => {
-              const r = previewFor[k];
-              const c = r.checks.find((x: typeof r.checks[number]) => x.id === 'rest-before');
-              const avail = parseHFromText(c?.value);
-              const req = parseHFromText(c?.limit);
-              const passing = !!(avail != null && req != null && avail >= req);
-              return (
-                <PreviewChip
-                  key={k}
-                  kind={k}
-                  avail={avail} req={req}
-                  passing={passing}
-                />
-              );
-            })}
-          </div>
-        </div>
       </div>
+
     </div>
   );
 }
@@ -774,56 +866,3 @@ function IllegalWarning({ kind, legality, onClear }: {
   );
 }
 
-function RestStat({ label, value, unit, tone }: {
-  label: string; value: number | null; unit: string; tone: 'good' | 'bad' | 'neutral';
-}) {
-  const toneCls =
-    tone === 'good' ? 'from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-950/40 text-emerald-800 dark:text-emerald-200 ring-emerald-300/40' :
-    tone === 'bad'  ? 'from-rose-50 to-rose-100 dark:from-rose-900/30 dark:to-rose-950/40 text-rose-800 dark:text-rose-200 ring-rose-300/40' :
-                       'from-slate-50 to-slate-100 dark:from-slate-800/40 dark:to-slate-900/30 text-slate-700 dark:text-slate-200 ring-slate-200/60';
-  return (
-    <div className={cn('rounded-xl bg-gradient-to-br ring-1 px-3 py-2.5', toneCls)}>
-      <div className="text-[10px] opacity-70 font-bold tracking-wider">{label}</div>
-      <div className="text-[20px] font-black tabular-nums leading-none mt-1">
-        {value == null ? '—' : fmtHours(value)}
-        <span className="text-[11px] opacity-60 font-bold mr-0.5">{value == null ? '' : unit}</span>
-      </div>
-    </div>
-  );
-}
-
-function RestBadge({ status }: { status?: string }) {
-  if (status === 'pass') return <span className="text-[10px] font-extrabold tracking-wider rounded-full px-2 py-0.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">OK</span>;
-  if (status === 'fail') return <span className="text-[10px] font-extrabold tracking-wider rounded-full px-2 py-0.5 bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200 flex items-center gap-0.5"><AlertTriangle className="w-2.5 h-2.5" />FAIL</span>;
-  if (status === 'warn') return <span className="text-[10px] font-extrabold tracking-wider rounded-full px-2 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">WARN</span>;
-  return <span className="text-[10px] opacity-60 font-bold">INFO</span>;
-}
-
-function PreviewChip({ kind, avail, req, passing }: {
-  kind: AdjKind; avail: number | null; req: number | null; passing: boolean;
-}) {
-  const meta = ADJ_META[kind];
-  const Icon = meta.icon;
-  return (
-    <div className={cn(
-      'rounded-xl px-2.5 py-2 ring-1 flex items-center gap-2',
-      passing ? 'bg-emerald-50/70 dark:bg-emerald-950/30 ring-emerald-300/30'
-              : 'bg-rose-50/70 dark:bg-rose-950/30 ring-rose-300/30',
-    )}>
-      <div className={cn(
-        'w-7 h-7 grid place-items-center rounded-lg shrink-0',
-        passing ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-                : 'bg-rose-500/15 text-rose-700 dark:text-rose-300',
-      )}>
-        <Icon className="w-3.5 h-3.5" strokeWidth={2.4} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-[11px] font-extrabold leading-tight truncate">{meta.fa}</div>
-        <div className="text-[10px] opacity-60 leading-none">{meta.sub}</div>
-      </div>
-      <div className="text-[11px] font-extrabold tabular-nums shrink-0">
-        {avail == null || req == null ? '—' : `${fmtHours(avail)}/${fmtHours(req)}`}
-      </div>
-    </div>
-  );
-}

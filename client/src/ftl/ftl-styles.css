@@ -107,6 +107,20 @@
   border-color:#0F766E !important;
   box-shadow:0 12px 28px -8px rgba(15,23,42,0.30) !important;
 }
+/* Floating mode (position computed in JS) — overrides the legacy absolute
+   positioning so the bubble lives on top of the viewport, not its parent. */
+.tt-floating {
+  position:fixed !important;
+  width:min(340px, calc(100vw - 24px)) !important;
+  max-width:none !important;
+  z-index:9999 !important;
+  pointer-events:auto;
+}
+/* Hide the legacy arrows — they pointed at a fixed offset that no longer
+   matches when the bubble is repositioned by JS. */
+.tt-floating::before, .tt-floating::after { display:none !important; }
+/* Also overlay the same overrides for the dark-mode bubble. */
+.dark .tt-floating { box-shadow:0 12px 28px -8px rgba(0,0,0,0.7) !important; }
 .ftl-scope .tt-title { color:#065F46 !important; font-weight:800; }
 .ftl-scope .tt-body  { color:#1E293B !important; }
 .ftl-scope .tt-body b { color:#065F46 !important; }
