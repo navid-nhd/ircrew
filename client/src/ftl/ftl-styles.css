@@ -259,12 +259,11 @@ html.dark, .dark{
 /* Hide the original navy "header" from ftl-checker — IRCrew already owns the page header. */
 .ftl-scope .header{display:none !important;}
 
-/* Sub-tab pills — equal-width, no horizontal scroll. On the narrowest phones
-   (≤380px) we drop the gap and inner padding so 5 tabs still fit comfortably
-   without any text being clipped. */
+/* Sub-tab pills — equal-width, no horizontal scroll. Auto-fits whatever
+   number of tabs the parent renders (was hardcoded to 5; with Tools moved
+   out of the FTL Checker we now have 4, but we don't want to special-case). */
 .ftl-scope .tabs{
-  display:grid;
-  grid-template-columns:repeat(5, 1fr);
+  display:flex;
   gap:3px;
   background:rgba(248,250,252,0.5);
   padding:3px; margin-bottom:12px;
@@ -272,6 +271,7 @@ html.dark, .dark{
   border:1px solid rgba(15,23,42,0.06);
   width:100%;
 }
+.ftl-scope .tabs > .tab{flex:1 1 0;min-width:0}
 .dark .ftl-scope .tabs{
   background:rgba(17,24,39,0.5);
   border-color:rgba(255,255,255,0.08);
@@ -711,26 +711,55 @@ html.dark, .dark{
   outline:none;border-color:var(--brand-2);
   box-shadow:0 0 0 3px rgba(21,99,154,.1);
 }
-/* The split-time pill — two selects glued together to look like one field.
-   Same outer chrome as .pdt-time so the visual structure is unchanged. */
+/* The split-time pill — two selects glued together with a tinted gradient
+   inner background, big numerals, and a brand-colored ":" separator so it
+   reads as ONE control rather than two pasted selects. */
 .pdt-time-split{
   display:inline-flex;align-items:stretch;
-  border:1px solid var(--line);border-radius:6px;
-  background:#fff;overflow:hidden;flex:0 0 auto;
+  border:1.5px solid var(--brand-2);
+  border-radius:10px;
+  background:linear-gradient(135deg, rgba(16,185,129,0.10), rgba(13,148,136,0.06));
+  overflow:hidden;
+  flex:0 0 auto;
   font-family:'YekanBakhFaNum','IRANSans',sans-serif;
+  box-shadow:0 1px 0 rgba(16,185,129,0.10) inset;
+  min-height:40px;
 }
 .pdt-time-cell{
-  border:0;background:transparent;padding:8px 6px;
-  font-family:inherit;font-size:11pt;font-weight:700;
-  text-align:center;min-width:46px;cursor:pointer;
-  appearance:none;-webkit-appearance:none;color:inherit;
+  border:0;background:transparent;
+  padding:0 18px 0 8px;                  /* extra right pad for the chevron */
+  font-family:inherit;
+  font-size:14pt;font-weight:900;
+  text-align:center;min-width:58px;
+  cursor:pointer;color:#065F46;
+  appearance:none;-webkit-appearance:none;
+  letter-spacing:0.5px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #059669 50%),
+    linear-gradient(135deg, #059669 50%, transparent 50%);
+  background-position:calc(100% - 10px) 50%, calc(100% - 6px) 50%;
+  background-size:4px 4px, 4px 4px;
+  background-repeat:no-repeat;
 }
-.pdt-time-cell:focus{outline:none}
+.pdt-time-cell:hover{background-color:rgba(16,185,129,0.10)}
+.pdt-time-cell:focus{outline:none;background-color:rgba(16,185,129,0.18)}
 .pdt-time-sep{
   display:inline-flex;align-items:center;justify-content:center;
-  padding:0 2px;font-weight:800;color:var(--brand-2);
+  padding:0 4px;font-weight:900;color:#059669;font-size:16pt;
   user-select:none;
+  background:rgba(16,185,129,0.06);
 }
+/* Dark mode for the split-time pill — match the .pdt-part dark scheme. */
+.dark .pdt-time-split{
+  background:linear-gradient(135deg, rgba(16,185,129,0.18), rgba(13,148,136,0.12)) !important;
+  border-color:rgba(16,185,129,0.55) !important;
+}
+.dark .pdt-time-cell{color:#A7F3D0 !important;background-image:
+    linear-gradient(45deg, transparent 50%, #34D399 50%),
+    linear-gradient(135deg, #34D399 50%, transparent 50%) !important;}
+.dark .pdt-time-cell:hover{background-color:rgba(52,211,153,0.18)}
+.dark .pdt-time-cell:focus{background-color:rgba(52,211,153,0.28)}
+.dark .pdt-time-sep{color:#34D399;background:rgba(52,211,153,0.10)}
 
 /* Dark mode — keep the same structure, just invert chrome for legibility. */
 .dark .pdt-part, .dark .pdt-time, .dark .pdt-time-split{
@@ -1052,13 +1081,29 @@ details.calc-details[open] summary{margin-bottom:6px}
   display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;
 }
 .overduty-strip .cell{
-  background:rgba(255,255,255,.6);border-radius:6px;padding:6px 10px;
+  /* Solid white tile so the labels/values stay readable on any verdict tint.
+     (The translucent rgba(255,255,255,.6) blended into the parent green and
+     made the muted label illegible — "after GO" was the worst offender.) */
+  background:#FFFFFF;
+  border:1px solid rgba(15,23,42,0.10);
+  border-radius:8px;padding:8px 10px;
   text-align:center;
+  box-shadow:0 1px 0 rgba(15,23,42,0.04);
 }
-.overduty-strip .cell .l{font-size:9pt;color:var(--muted);margin-bottom:2px}
+.overduty-strip .cell .l{
+  font-size:9.5pt;color:#475569;margin-bottom:3px;font-weight:700;
+}
 .overduty-strip .cell .v{
-  font-family:'YekanBakhFaNum';font-weight:700;font-size:14pt;direction:ltr;
+  font-family:'YekanBakhFaNum';font-weight:900;font-size:14pt;direction:ltr;
+  color:#0F172A;
 }
+/* Dark — give the cell a slate background that lifts the white text. */
+.dark .overduty-strip .cell{
+  background:rgba(15,23,42,0.85) !important;
+  border-color:rgba(255,255,255,0.12) !important;
+}
+.dark .overduty-strip .cell .l{color:#94A3B8 !important}
+.dark .overduty-strip .cell .v{color:#F1F5F9 !important}
 
 /* â”€â”€â”€ Mobile responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media (max-width: 768px) {
