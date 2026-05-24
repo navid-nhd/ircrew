@@ -1,0 +1,22 @@
+PersianDateTime midnight-safe time + better next-legal banner + Tools moved to bottom tabs
+
+1. PersianDateTime: replaced the native <input type="time"> with two
+   compact 24h selects glued together as a single visual pill (.pdt-time
+   -split / .pdt-time-cell / .pdt-time-sep). Outer shape matches the
+   original .pdt-time so the "3 selects + 1 time block" layout the user
+   liked is preserved. 00:00 and 00:30 (and every other 5-min value) are
+   now reachable on every browser, and onChange fires immediately on
+   each select change — so the ETD → Reporting → Reference auto-update
+   in ProposedFlight works reliably even via the time portion.
+
+2. ResultsPanel: rewrote the "نزدیک‌ترین استندبای / پرواز قانونی" banner.
+   New fmtJDateLong helper produces weekday + day + full month + year in
+   Persian. Banner now has a centered "when" card with the weekday on
+   top, big day+month+year row, and time on a separate line. Removed the
+   "·" Latin separator and LTR span — fully RTL Persian structure.
+
+3. Moved the FTL "ابزارها" (Toolbox) sub-tab out of FtlTab. It is now a
+   top-level bottom tab in BottomTabs (between FTL and Stats). Tools are
+   general aviation calculators (WOCL, Acclimatization, Cabin Report,
+   IFR Planner) — they are NOT specific to the FTL Checker and belong at
+   the app-shell level.

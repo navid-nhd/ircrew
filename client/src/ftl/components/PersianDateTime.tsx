@@ -65,12 +65,6 @@ export default function PersianDateTime({
   const setY = (y: number) => emit({ jy: y, jm, jd, hh, mm });
   const setM = (m: number) => emit({ jy, jm: m, jd, hh, mm });
   const setD = (d: number) => emit({ jy, jm, jd: d, hh, mm });
-  const setT = (s: string) => {
-    const [h, mi] = s.split(':').map(Number);
-    emit({ jy, jm, jd, hh: h ?? 0, mm: mi ?? 0 });
-  };
-
-  const timeStr = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
 
   // Year list, descending (newest first)
   const years: number[] = [];
@@ -94,13 +88,38 @@ export default function PersianDateTime({
         ))}
       </select>
       {withTime && (
-        <input
-          type="time"
-          className="pdt-time"
-          value={timeStr}
-          onChange={(e) => setT(e.target.value)}
-          aria-label="ساعت"
-        />
+        // Two compact 24h selects in a unified pill — keeps the "single time
+        // field" look but every value is reachable (including 00:00/00:30
+        // which the native <input type="time"> hides under 12-hour AM/PM
+        // on some Persian-locale browsers).
+        <span className="pdt-time pdt-time-split" dir="ltr">
+          <select
+            className="pdt-time-cell"
+            value={hh}
+            onChange={(e) => emit({ jy, jm, jd, hh: Number(e.target.value), mm })}
+            aria-label="ساعت"
+          >
+            {Array.from({ length: 24 }, (_, h) => h).map((h) => (
+              <option key={h} value={h}>{String(h).padStart(2, '0')}</option>
+            ))}
+          </select>
+          <span className="pdt-time-sep">:</span>
+          <select
+            className="pdt-time-cell"
+            value={mm}
+            onChange={(e) => emit({ jy, jm, jd, hh, mm: Number(e.target.value) })}
+            aria-label="دقیقه"
+          >
+            {(() => {
+              const opts: number[] = [];
+              for (let m = 0; m <= 55; m += 5) opts.push(m);
+              if (!opts.includes(mm)) { opts.push(mm); opts.sort((a, b) => a - b); }
+              return opts.map((m) => (
+                <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
+              ));
+            })()}
+          </select>
+        </span>
       )}
     </div>
   );

@@ -11,7 +11,6 @@ import { AdjacentDuties } from './AdjacentDuties';
 import { RosterImport } from './RosterImport';
 import { MonthLegalityScan } from './MonthLegalityScan';
 import { fdpsToCandidates } from '../lib/dutyToCandidate';
-import { Toolbox } from './Toolbox';
 import { WatchdogAlertsCard } from './WatchdogAlertsCard';
 import { scanForBearTraps } from '../lib/watchdogs';
 import { vaultEntries } from '../lib/recordsVault';
@@ -87,7 +86,7 @@ const duplicateForNextDay = (c: ProposedFlight): ProposedFlight => {
   };
 };
 
-type Tab = 'profile' | 'history' | 'flight' | 'results' | 'tools';
+type Tab = 'profile' | 'history' | 'flight' | 'results';
 
 interface Props {
   creds: Credentials;
@@ -211,9 +210,6 @@ export function FtlTab({ creds, position }: Props) {
         </button>
         <button className={`tab ${tab === 'flight' ? 'active' : ''}`} onClick={() => setTab('flight')}>
           ۳. کاندیدها <span className="num" style={{ color: '#888' }}>({candidates.length})</span>
-        </button>
-        <button className={`tab ${tab === 'tools' ? 'active' : ''}`} onClick={() => setTab('tools')}>
-          ابزارها
         </button>
         <button className={`tab ${tab === 'results' ? 'active' : ''}`} onClick={() => setTab('results')}>
           ۴. نتیجه
@@ -366,11 +362,6 @@ export function FtlTab({ creds, position }: Props) {
         </>
       )}
 
-      {tab === 'tools' && (
-        <div className="my-2">
-          <Toolbox creds={creds} profile={profile} />
-        </div>
-      )}
     </div>
   );
 }

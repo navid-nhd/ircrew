@@ -500,26 +500,83 @@ html.dark, .dark{
   background:linear-gradient(135deg,rgba(16,185,129,0.10),rgba(13,148,136,0.10));
   border:1px solid rgba(16,185,129,0.35);
   color:#064E3B; font-family:'IRANSans','YekanBakh',sans-serif;
+  direction:rtl;
 }
 .ftl-scope .next-legal-banner .nlb-icon{font-size:22px;line-height:1;flex-shrink:0;margin-top:1px}
 .ftl-scope .next-legal-banner .nlb-body{flex:1;min-width:0}
 .ftl-scope .next-legal-banner .nlb-title{
-  font-weight:900;font-size:12.5pt;margin-bottom:6px;color:#065F46;
+  font-weight:900;font-size:12.5pt;margin-bottom:8px;color:#065F46;
 }
-.ftl-scope .next-legal-banner .nlb-row{
-  display:flex;align-items:baseline;gap:8px;font-size:11pt;margin-top:2px;
+
+/* The big when-block — weekday on top, date in the middle, time below */
+.ftl-scope .next-legal-banner .nlb-when{
+  background:rgba(255,255,255,0.50);
+  border:1px solid rgba(16,185,129,0.25);
+  border-radius:10px;
+  padding:10px 12px;
+  margin-bottom:8px;
+  text-align:center;
 }
-.ftl-scope .next-legal-banner .nlb-l{opacity:.80;font-weight:700;min-width:78px}
-.ftl-scope .next-legal-banner .nlb-v{font-weight:800;font-family:'YekanBakhFaNum',sans-serif}
-.ftl-scope .next-legal-banner .nlb-sub{
-  font-size:9.5pt;opacity:.65;margin-top:6px;line-height:1.6;
+.ftl-scope .next-legal-banner .nlb-when-weekday{
+  font-size:10.5pt;font-weight:800;
+  color:#047857;opacity:0.85;
+  margin-bottom:3px;
 }
+.ftl-scope .next-legal-banner .nlb-when-line{
+  display:flex;align-items:baseline;justify-content:center;gap:6px;
+  font-family:'IRANSans','YekanBakh',sans-serif;
+  color:#065F46;
+}
+.ftl-scope .next-legal-banner .nlb-when-day{
+  font-size:18pt;font-weight:900;
+  font-family:'YekanBakhFaNum',sans-serif;
+}
+.ftl-scope .next-legal-banner .nlb-when-month{
+  font-size:14pt;font-weight:800;
+}
+.ftl-scope .next-legal-banner .nlb-when-year{
+  font-size:13pt;font-weight:700;opacity:0.75;
+  font-family:'YekanBakhFaNum',sans-serif;
+}
+.ftl-scope .next-legal-banner .nlb-when-time{
+  margin-top:6px;display:flex;align-items:baseline;justify-content:center;gap:5px;
+  padding-top:6px;
+  border-top:1px dashed rgba(16,185,129,0.30);
+}
+.ftl-scope .next-legal-banner .nlb-when-time-label{
+  font-size:10pt;font-weight:700;opacity:0.7;
+}
+.ftl-scope .next-legal-banner .nlb-when-time-val{
+  font-size:16pt;font-weight:900;
+  font-family:'YekanBakhFaNum',sans-serif;
+  letter-spacing:0.5px;
+  color:#065F46;
+}
+
+.ftl-scope .next-legal-banner .nlb-meta{
+  display:flex;flex-direction:column;gap:4px;
+  font-size:10.5pt;
+}
+.ftl-scope .next-legal-banner .nlb-meta-row{
+  display:flex;align-items:baseline;gap:8px;
+}
+.ftl-scope .next-legal-banner .nlb-l{opacity:.75;font-weight:700;min-width:135px}
+.ftl-scope .next-legal-banner .nlb-v{font-weight:800;font-family:'YekanBakhFaNum','IRANSans',sans-serif}
+
 .dark .ftl-scope .next-legal-banner{
-  background:linear-gradient(135deg,rgba(16,185,129,0.18),rgba(13,148,136,0.18));
+  background:linear-gradient(135deg,rgba(16,185,129,0.20),rgba(13,148,136,0.20));
   border-color:rgba(16,185,129,0.55);
   color:#E2E8F0;
 }
 .dark .ftl-scope .next-legal-banner .nlb-title{color:#A7F3D0}
+.dark .ftl-scope .next-legal-banner .nlb-when{
+  background:rgba(15,23,42,0.55);
+  border-color:rgba(16,185,129,0.50);
+}
+.dark .ftl-scope .next-legal-banner .nlb-when-weekday{color:#6EE7B7}
+.dark .ftl-scope .next-legal-banner .nlb-when-line{color:#F1F5F9}
+.dark .ftl-scope .next-legal-banner .nlb-when-time-val{color:#A7F3D0}
+.dark .ftl-scope .next-legal-banner .nlb-when-time{border-top-color:rgba(16,185,129,0.45)}
 
 /* Results */
 .ftl-scope .fdp-result{
@@ -654,13 +711,35 @@ html.dark, .dark{
   outline:none;border-color:var(--brand-2);
   box-shadow:0 0 0 3px rgba(21,99,154,.1);
 }
+/* The split-time pill — two selects glued together to look like one field.
+   Same outer chrome as .pdt-time so the visual structure is unchanged. */
+.pdt-time-split{
+  display:inline-flex;align-items:stretch;
+  border:1px solid var(--line);border-radius:6px;
+  background:#fff;overflow:hidden;flex:0 0 auto;
+  font-family:'YekanBakhFaNum','IRANSans',sans-serif;
+}
+.pdt-time-cell{
+  border:0;background:transparent;padding:8px 6px;
+  font-family:inherit;font-size:11pt;font-weight:700;
+  text-align:center;min-width:46px;cursor:pointer;
+  appearance:none;-webkit-appearance:none;color:inherit;
+}
+.pdt-time-cell:focus{outline:none}
+.pdt-time-sep{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:0 2px;font-weight:800;color:var(--brand-2);
+  user-select:none;
+}
+
 /* Dark mode — keep the same structure, just invert chrome for legibility. */
-.dark .pdt-part, .dark .pdt-time{
+.dark .pdt-part, .dark .pdt-time, .dark .pdt-time-split{
   background:#0F172A !important;
   color:#F1F5F9 !important;
   border-color:rgba(16,185,129,0.50) !important;
 }
-.dark .pdt-part option{background:#0F172A;color:#F1F5F9}
+.dark .pdt-part option, .dark .pdt-time-cell option{background:#0F172A;color:#F1F5F9}
+.dark .pdt-time-sep{color:#34D399}
 
 /* â”€â”€â”€ Persian date picker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .rmdp-input-fa{

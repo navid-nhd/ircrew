@@ -8,6 +8,7 @@ import { FlightCrewTab } from './components/FlightCrewTab';
 import { FtlTab } from './components/FtlTab';
 import { OfflineConnectPrompt } from './components/OfflineConnectPrompt';
 import { StatsTab } from './components/StatsTab';
+import { Toolbox } from './components/Toolbox';
 import { ActivationScreen } from './components/ActivationScreen';
 import { activationStore } from './lib/activation';
 import { resetUpstreamSession } from './lib/upstreamClient';
@@ -15,7 +16,7 @@ import { ensureNotificationsReady, publishBgContext, clearBgContext } from './li
 import { honorificFromPosition } from './lib/positions';
 import { profileStore } from './lib/profile';
 
-type Tab = 'roster' | 'flightcrew' | 'ftl' | 'stats';
+type Tab = 'roster' | 'flightcrew' | 'ftl' | 'tools' | 'stats';
 
 const STORE_KEY = 'ircrew.creds.v1';
 
@@ -104,6 +105,14 @@ export function App() {
             : <FlightCrewTab creds={creds} />
         )}
         {tab === 'ftl' && <FtlTab creds={creds} position={position} />}
+        {tab === 'tools' && (
+          <div className="my-2">
+            <Toolbox
+              creds={creds}
+              profile={{ fullName: '', role: 'flight', homeBase: 'THR', hasFRM: false }}
+            />
+          </div>
+        )}
         {tab === 'stats' && <StatsTab creds={creds} />}
       </main>
       <BottomTabs current={tab} onChange={setTab} />

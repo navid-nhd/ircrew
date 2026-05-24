@@ -17,12 +17,26 @@ const ICON: Record<CheckResult['status'], string> = {
 };
 
 const PERSIAN_MONTHS_SHORT = ['فرو','ارد','خرد','تیر','مرد','شهر','مهر','آبا','آذر','دی','بهم','اسف'];
+const PERSIAN_MONTHS_FULL  = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+const PERSIAN_WEEKDAYS     = ['یک‌شنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنج‌شنبه','جمعه','شنبه'];
 const toFa = (n: number | string) => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[parseInt(d, 10)]);
 
 const fmtJDate = (iso: string): string => {
   const d = new Date(iso);
   const j = toJalaali(d.getFullYear(), d.getMonth() + 1, d.getDate());
   return `${toFa(j.jd)} ${PERSIAN_MONTHS_SHORT[j.jm - 1]}`;
+};
+// Long-form Persian date used in the "next-legal" banner where there's
+// room: "پنج‌شنبه ۶ خرداد ۱۴۰۵".
+const fmtJDateLong = (iso: string): { weekday: string; day: string; month: string; year: string } => {
+  const d = new Date(iso);
+  const j = toJalaali(d.getFullYear(), d.getMonth() + 1, d.getDate());
+  return {
+    weekday: PERSIAN_WEEKDAYS[d.getDay()],
+    day: toFa(j.jd),
+    month: PERSIAN_MONTHS_FULL[j.jm - 1],
+    year: toFa(j.jy),
+  };
 };
 const fmtTime = (iso: string): string => {
   const d = new Date(iso);
@@ -160,28 +174,45 @@ export default function ResultsPanel({ result, candidates, allResults, activeInd
 
       {/* Earliest-legal-next-duty banner — answers "وقتی برمی‌گردم، نزدیک‌ترین
           استندبای/پرواز قانونی بعدی از کِی می‌تواند شروع شود؟" */}
-      {nextLegal && (
-        <div className="next-legal-banner" dir="rtl">
-          <div className="nlb-icon">⏱️</div>
-          <div className="nlb-body">
-            <div className="nlb-title">نزدیک‌ترین استندبای / پرواز قانونی پس از این FDP</div>
-            <div className="nlb-row">
-              <span className="nlb-l">می‌توانی از:</span>
-              <span className="nlb-v num" dir="ltr">
-                {fmtJDate(nextLegal.earliestIso)} · {fmtTime(nextLegal.earliestIso)}
-              </span>
-            </div>
-            <div className="nlb-row">
-              <span className="nlb-l">Rest قانونی:</span>
-              <span className="nlb-v num">≥ {toFa(nextLegal.requiredHours.toFixed(1))}h</span>
-            </div>
-            <div className="nlb-sub">
-              (پس از پایان FDP در <span className="num" dir="ltr">{fmtTime(nextLegal.priorEndIso)}</span>{' '}
-              + Check-out و افست Rest)
+      {nextLegal && (() => {
+        const dt = fmtJDateLong(nextLegal.earliestIso);
+        const priorDt = fmtJDateLong(nextLegal.priorEndIso);
+        return (
+          <div className="next-legal-banner" dir="rtl">
+            <div className="nlb-icon">⏱️</div>
+            <div className="nlb-body">
+              <div className="nlb-title">نزدیک‌ترین استندبای / پرواز قانونی پس از این FDP</div>
+
+              {/* Big date+time block — fully Persian, RTL, no Latin separators */}
+              <div className="nlb-when">
+                <div className="nlb-when-weekday">{dt.weekday}</div>
+                <div className="nlb-when-line">
+                  <span className="nlb-when-day">{dt.day}</span>
+                  <span className="nlb-when-month">{dt.month}</span>
+                  <span className="nlb-when-year">{dt.year}</span>
+                </div>
+                <div className="nlb-when-time">
+                  <span className="nlb-when-time-label">ساعت</span>
+                  <span className="nlb-when-time-val">{fmtTime(nextLegal.earliestIso)}</span>
+                </div>
+              </div>
+
+              <div className="nlb-meta">
+                <div className="nlb-meta-row">
+                  <span className="nlb-l">حداقل Rest قانونی:</span>
+                  <span className="nlb-v">{toFa(nextLegal.requiredHours.toFixed(1))} ساعت</span>
+                </div>
+                <div className="nlb-meta-row">
+                  <span className="nlb-l">پایان FDP فعلی:</span>
+                  <span className="nlb-v">
+                    {priorDt.day} {priorDt.month} - ساعت {fmtTime(nextLegal.priorEndIso)}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Over-Duty strip */}
       {overDutyClass && (

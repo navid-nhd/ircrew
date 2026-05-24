@@ -1,16 +1,17 @@
-import { CalendarRange, Users, ShieldCheck, BarChart3 } from 'lucide-react';
+import { CalendarRange, Users, ShieldCheck, BarChart3, Wrench } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-type Tab = 'roster' | 'flightcrew' | 'ftl' | 'stats';
+type Tab = 'roster' | 'flightcrew' | 'ftl' | 'stats' | 'tools';
 
 export function BottomTabs({
   current, onChange,
 }: { current: Tab; onChange: (t: Tab) => void }) {
   const items: Array<{ key: Tab; label: string; icon: typeof CalendarRange }> = [
-    { key: 'roster',     label: 'برنامه',     icon: CalendarRange },
+    { key: 'roster',     label: 'برنامه',       icon: CalendarRange },
     { key: 'flightcrew', label: 'پرواز و خدمه', icon: Users },
-    { key: 'ftl',        label: 'FTL',         icon: ShieldCheck },
-    { key: 'stats',      label: 'آمار',         icon: BarChart3 },
+    { key: 'ftl',        label: 'FTL',           icon: ShieldCheck },
+    { key: 'tools',      label: 'ابزارها',      icon: Wrench },
+    { key: 'stats',      label: 'آمار',          icon: BarChart3 },
   ];
   const idx = items.findIndex((i) => i.key === current);
 
