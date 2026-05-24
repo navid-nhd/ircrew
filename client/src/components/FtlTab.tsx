@@ -34,19 +34,25 @@ const tomorrowAt = (h: number, daysOffset = 1) => {
 // Never used to populate the initial state so the FTL tab no longer ships
 // mock-looking defaults on first open.
 const blankProposed = (daysOffset = 1): ProposedFlight => {
-  const reportIso = tomorrowAt(8, daysOffset);
+  // Defaults: international + wide-body → reporting must be 2h before ETD
+  // per OM-A 7.7. (Previously the blank picked a flat 1h gap, which silently
+  // contradicted the scope/body the same object was emitting.)
+  const scope: ProposedFlight['scope'] = 'international';
+  const body: ProposedFlight['body'] = 'wide';
+  const offsetH = scope === 'international' ? 2 : body === 'wide' ? 1.5 : 1;
   const etdIso = tomorrowAt(9, daysOffset);
   const etaIso = tomorrowAt(13, daysOffset);
-  const d = new Date(reportIso);
+  const reportDate = new Date(new Date(etdIso).getTime() - offsetH * 3_600_000);
+  const reportIso = reportDate.toISOString();
   return {
     label: '',
     reportingTimeLocal: reportIso,
     estimatedDepartureLocal: etdIso,
     estimatedArrivalLocal: etaIso,
-    referenceTimeHHMM: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
+    referenceTimeHHMM: `${String(reportDate.getHours()).padStart(2, '0')}:${String(reportDate.getMinutes()).padStart(2, '0')}`,
     sectors: 2,
-    scope: 'international',
-    body: 'wide',
+    scope,
+    body,
     departureStation: 'home',
     arrivalStation: 'away',
     augmentedExtraFlightCrew: 0,

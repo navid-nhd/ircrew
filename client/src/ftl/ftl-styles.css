@@ -920,23 +920,29 @@ table.calc-table thead th{
   font-family:'YekanBakh',sans-serif;font-weight:700;font-size:9pt;
   white-space:nowrap;
 }
+/* Calc-table cells — explicit dark text in LIGHT mode (var(--muted) was too
+   pale on white). Dark-mode overrides further down in the file. */
 table.calc-table .num{
   font-family:'YekanBakhFaNum',sans-serif;direction:ltr;text-align:center;
-  width:28px;color:var(--muted);
+  width:28px;color:#475569;font-weight:700;
 }
-table.calc-table .label{font-family:'YekanBakh';font-weight:600;color:var(--ink);min-width:120px}
+table.calc-table .label{
+  font-family:'YekanBakh';font-weight:700;color:#0F172A;min-width:120px;
+}
 table.calc-table .formula{
   font-family:'YekanBakhFaNum','IRANSans',monospace;direction:ltr;
-  color:var(--ink-soft);font-size:9pt;text-align:left;
+  color:#1E293B;font-size:9pt;text-align:left;font-weight:500;
 }
 table.calc-table .value{
   font-family:'YekanBakhFaNum',sans-serif;direction:ltr;
-  font-weight:700;color:var(--brand);text-align:center;white-space:nowrap;
+  font-weight:900;color:#065F46;text-align:center;white-space:nowrap;
 }
 table.calc-table .ref{
   font-family:'YekanBakhFaNum',sans-serif;direction:ltr;
-  font-size:8.5pt;color:var(--muted);text-align:left;
+  font-size:9pt;color:#475569;text-align:left;font-weight:600;
 }
+table.calc-table td{color:#0F172A}
+table.calc-table tbody tr:nth-child(even) td{background:#F8FAFC}
 table.calc-table tr.final{background:#fff8e6;border-top:2px solid var(--gold)}
 table.calc-table tr.final .value{color:var(--gold);font-size:10.5pt}
 
