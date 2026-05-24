@@ -17,6 +17,8 @@ import { vaultEntries } from '../lib/recordsVault';
 import { rosterToHistory } from '../lib/rosterToHistory';
 import { RosterAuditCard } from './RosterAuditCard';
 import { TodaysBriefing } from './TodaysBriefing';
+import { RosterChangeBanner } from './RosterChangeBanner';
+import { recordChanges } from '../lib/rosterChangeNotifier';
 
 interface Props {
   creds: Credentials;
@@ -38,6 +40,9 @@ export function RosterTab({ creds, onPositionLearned }: Props) {
   const [view, setView] = useState<ViewMode>('calendar');
   const [selectedIso, setSelectedIso] = useState<string>(todayIso());
   const [audit, setAudit] = useState<RosterAuditResult | null>(null);
+  // Bumped whenever we record a fresh audit batch so the change banner
+  // re-reads from localStorage and shows the new entries immediately.
+  const [bannerBump, setBannerBump] = useState(0);
   const dayDetailRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -55,8 +60,18 @@ export function RosterTab({ creds, onPositionLearned }: Props) {
     const ctrl = new AbortController();
     (async () => {
       setLoading(true); setErr(null);
+      // If the last upstream-fresh fetch for this code is older than 30 min,
+      // ignore the cache so we actually notice schedule changes that arrived
+      // while the app was closed. The roster change banner depends on this.
+      const FRESH_INTERVAL = 30 * 60_000;
+      const lastFreshKey = `ircrew.lastRosterFresh.${creds.code.toUpperCase()}`;
+      let stale = true;
       try {
-        const r = await api.roster(creds, period, { signal: ctrl.signal, forceFresh: refreshTick > 0 });
+        const t = Number(localStorage.getItem(lastFreshKey) ?? 0);
+        stale = Date.now() - t > FRESH_INTERVAL;
+      } catch { /* ignore */ }
+      try {
+        const r = await api.roster(creds, period, { signal: ctrl.signal, forceFresh: refreshTick > 0 || stale });
         if (ctrl.signal.aborted) return;
         setData(r.data);
         const pos = derivePositionFromRoster(r.data.rows);
@@ -67,10 +82,17 @@ export function RosterTab({ creds, onPositionLearned }: Props) {
         // Fold every fresh fetch into the 24-month vault AND diff it against
         // the previous snapshot for the roster-auditor card.
         if (!r.stale) {
+          // Mark this code's last upstream-fresh moment so the next launch
+          // knows whether to bypass the cache for change detection.
+          try { localStorage.setItem(lastFreshKey, String(Date.now())); } catch { /* ignore */ }
           const conv = rosterToHistory(r.data.rows);
           vaultEntries(creds.code, conv.entries, period);
           const auditResult = auditRoster(creds.code, period, r.data);
           setAudit(auditResult);
+          if (auditResult.changes.length > 0) {
+            const recorded = recordChanges(creds.code, period, auditResult.changes);
+            if (recorded) setBannerBump((b) => b + 1);
+          }
         }
       } catch (e) {
         if (ctrl.signal.aborted) return;
@@ -177,6 +199,8 @@ export function RosterTab({ creds, onPositionLearned }: Props) {
           <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
         </button>
       </div>
+
+      <RosterChangeBanner crewCode={creds.code} period={period} bumpToken={bannerBump} />
 
       {data && <TodaysBriefing rows={data.rows} crewCode={creds.code} />}
 
