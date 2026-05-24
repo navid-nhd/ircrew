@@ -63,23 +63,23 @@ const KIND = {
     glow: '',
   },
   OFC: {
-    // Office duty (HQ shifts). Counts as duty but is sedentary — neutral
-    // slate tone with a building icon makes the distinction clear.
-    accent: 'from-slate-400 to-slate-600',
-    pill: 'bg-gradient-to-br from-slate-100 to-slate-200 text-slate-800 dark:from-slate-800/60 dark:to-slate-700/40 dark:text-slate-200',
+    // Office duty (HQ shifts) — bold professional blue. Distinct from sky
+    // (TRAIN's light blue) and indigo (RST) yet clearly "office desk".
+    accent: 'from-blue-400 to-blue-700',
+    pill: 'bg-gradient-to-br from-blue-200 to-blue-300 text-blue-900 dark:from-blue-900/55 dark:to-blue-800/40 dark:text-blue-100',
     icon: Building2, label: 'دفتری (OFC)',
-    cell: 'bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800/50 dark:to-slate-900/30 ring-1 ring-slate-300/40 dark:ring-slate-700/40',
-    glow: '',
+    cell: 'bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-950/55 dark:to-blue-900/35 ring-1 ring-blue-400/50 dark:ring-blue-700/40',
+    glow: 'shadow-[0_8px_28px_-10px_rgba(59,130,246,0.30)]',
   },
   RST: {
-    // Compulsory rest period (post-flight or general rest day). Indigo so
-    // it reads "calm/sleep" without being confused with OFF (amber) or
+    // Compulsory rest period — saturated indigo → purple so it reads as
+    // "deep sleep" and is unmistakeably different from OFF (amber) and
     // LAYOVER (teal).
-    accent: 'from-indigo-400 to-blue-600',
-    pill: 'bg-gradient-to-br from-indigo-100 to-blue-200 text-indigo-800 dark:from-indigo-950/55 dark:to-blue-900/40 dark:text-indigo-200',
+    accent: 'from-indigo-500 to-purple-700',
+    pill: 'bg-gradient-to-br from-indigo-200 to-purple-300 text-indigo-900 dark:from-indigo-900/55 dark:to-purple-900/40 dark:text-indigo-100',
     icon: Moon, label: 'استراحت (RST)',
-    cell: 'bg-gradient-to-br from-indigo-100 to-blue-50 dark:from-indigo-950/40 dark:to-blue-900/20 ring-1 ring-indigo-300/40 dark:ring-indigo-700/40',
-    glow: '',
+    cell: 'bg-gradient-to-br from-indigo-100 to-purple-200 dark:from-indigo-950/55 dark:to-purple-900/35 ring-1 ring-indigo-400/50 dark:ring-indigo-700/40',
+    glow: 'shadow-[0_8px_28px_-10px_rgba(99,102,241,0.30)]',
   },
   TRAIN: {
     accent: 'from-sky-400 to-blue-600',

@@ -175,19 +175,18 @@ const CELL_STYLES: Record<Exclude<Kind, 'NONE'>, CellStyle> = {
     Icon: Palmtree, label: 'L/O',
   },
   OFC: {
-    // Sedentary office duty — neutral slate so it doesn't compete with
-    // operational duties for visual weight.
-    bg: 'bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-800/70 dark:to-slate-700/50 ring-1 ring-slate-400/40 dark:ring-slate-600/40',
-    text: 'text-slate-800 dark:text-slate-200',
-    iconColor: 'text-slate-700 dark:text-slate-300',
+    // Saturated blue — clearly "office", clearly NOT neutral grey.
+    bg: 'bg-gradient-to-br from-blue-200 to-blue-300 dark:from-blue-900/60 dark:to-blue-800/45 ring-1 ring-blue-400/50 dark:ring-blue-600/45',
+    text: 'text-blue-900 dark:text-blue-100',
+    iconColor: 'text-blue-700 dark:text-blue-200',
     Icon: Building2, label: 'OFC',
   },
   RST: {
-    // Calm indigo for compulsory rest — distinct from OFF (amber) and
-    // LAYOVER (teal). Reads as "sleep" / "recovery" at a glance.
-    bg: 'bg-gradient-to-br from-indigo-100 to-blue-200 dark:from-indigo-950/55 dark:to-blue-900/40 ring-1 ring-indigo-300/40 dark:ring-indigo-700/40',
-    text: 'text-indigo-800 dark:text-indigo-200',
-    iconColor: 'text-indigo-700 dark:text-indigo-300',
+    // Bolder indigo-to-purple "deep sleep" tone — unmistakable vs OFF
+    // (amber) and LAYOVER (teal).
+    bg: 'bg-gradient-to-br from-indigo-200 to-purple-300 dark:from-indigo-900/60 dark:to-purple-900/45 ring-1 ring-indigo-400/50 dark:ring-indigo-600/45',
+    text: 'text-indigo-900 dark:text-indigo-100',
+    iconColor: 'text-indigo-700 dark:text-indigo-200',
     Icon: Moon, label: 'RST',
   },
   TRAIN: {
@@ -334,9 +333,9 @@ function Legend() {
     { color: 'bg-emerald-500', label: 'پرواز' },
     { color: 'bg-violet-500',  label: 'D/H'   },
     { color: 'bg-teal-500',    label: 'L/O'   },
-    { color: 'bg-indigo-500',  label: 'RST'   },
+    { color: 'bg-indigo-600',  label: 'RST'   },
+    { color: 'bg-blue-600',    label: 'OFC'   },
     { color: 'bg-sky-500',     label: 'دوره'  },
-    { color: 'bg-slate-500',   label: 'OFC'   },
     { color: 'bg-rose-500',    label: 'پزشکی' },
     { color: 'bg-cyan-500',    label: 'گذرنامه' },
     { color: 'bg-slate-500',   label: 'جلسه' },
