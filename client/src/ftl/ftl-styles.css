@@ -214,6 +214,27 @@ html.dark, .dark{
 .dark .ftl-scope .fdp-result.no-go { background:rgba(220,38,38,0.30) !important; }
 .dark .ftl-scope .fdp-result.go   { background:rgba(16,185,129,0.28) !important; }
 
+/* ─── Light-mode nested-section contrast ──────────────────────────────────
+   The default vars (#334155 ink-soft) gave OK contrast on plain white, but
+   on the tinted .violation/.remedy/.calc backgrounds the body text looked
+   washed-out. Lock down explicit dark text + bolder weight for both heading
+   and paragraph in every variant. */
+.ftl-scope .analysis-block .a-section            { color:#0F172A !important; }
+.ftl-scope .analysis-block .a-section h4         { color:#0F766E !important; font-weight:800; }
+.ftl-scope .analysis-block .a-section p          { color:#0F172A !important; font-weight:500; }
+.ftl-scope .analysis-block .a-section.rule h4    { color:#0369A1 !important; }
+.ftl-scope .analysis-block .a-section.violation  { color:#7F1D1D !important; }
+.ftl-scope .analysis-block .a-section.violation h4 { color:#991B1B !important; }
+.ftl-scope .analysis-block .a-section.violation p  { color:#7F1D1D !important; font-weight:600; }
+.ftl-scope .analysis-block .a-section.remedy    { color:#064E3B !important; }
+.ftl-scope .analysis-block .a-section.remedy h4  { color:#065F46 !important; }
+.ftl-scope .analysis-block .a-section.remedy p   { color:#064E3B !important; font-weight:600; }
+.ftl-scope .analysis-block .a-section.calc h4    { color:#0F766E !important; }
+.ftl-scope .analysis-block .a-section.calc p     { color:#0F172A !important; }
+.ftl-scope .analysis-block .a-vals               { color:#0F172A !important; background:#FFFFFF !important; padding:6px 10px; border-radius:6px; font-weight:700; }
+.ftl-scope .analysis-block .a-title              { color:#0F172A !important; }
+.ftl-scope .analysis-block .a-ref                { color:#475569 !important; }
+
 /* ─── Nested sections in dark mode ───────────────────────────────────────
    Many legacy rules hard-code light backgrounds (#fafcff, #fff5f4, #f0f9f3,
    #eef6ff, #fff8e6, #fff4e0, etc). In class-based dark mode the text vars

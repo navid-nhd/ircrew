@@ -26,25 +26,41 @@ export default function ProposedFlightPanel({ proposed, onChange }: Props) {
   //   domestic NB  → 1:00
   //   domestic WB  → 1:30
   //   international → 2:00
-  const reportingOffsetMin = (): number => {
-    if (proposed.scope === 'international') return 120;
-    return proposed.body === 'wide' ? 90 : 60;
+  const offsetMinFor = (scope: ProposedFlight['scope'], body: ProposedFlight['body']): number => {
+    if (scope === 'international') return 120;
+    return body === 'wide' ? 90 : 60;
   };
 
-  // When the user picks ETD, auto-set Reporting Time = ETD − offset. The
-  // user can still override Reporting afterwards (the next ETD edit will
-  // recompute it again — that's the intended behavior). Reference Time also
-  // updates from the new Reporting.
-  const onDeparture = (iso: string) => {
-    const etd = new Date(iso);
-    const reporting = new Date(etd.getTime() - reportingOffsetMin() * 60_000);
+  // Single recompute helper — given an ETD and the scope/body, derive the
+  // new reporting + reference. Used by both the ETD picker AND by the
+  // scope / body selects so changing aircraft type or domestic→international
+  // shifts Reporting immediately (instead of silently going stale).
+  const recomputeReporting = (etdIso: string, scope: ProposedFlight['scope'], body: ProposedFlight['body'], extra: Partial<ProposedFlight> = {}) => {
+    const etd = new Date(etdIso);
+    const reporting = new Date(etd.getTime() - offsetMinFor(scope, body) * 60_000);
     const hhmm = `${String(reporting.getHours()).padStart(2, '0')}:${String(reporting.getMinutes()).padStart(2, '0')}`;
     onChange({
       ...proposed,
-      estimatedDepartureLocal: iso,
+      ...extra,
+      estimatedDepartureLocal: etdIso,
+      scope, body,
       reportingTimeLocal: reporting.toISOString(),
       referenceTimeHHMM: hhmm,
     });
+  };
+
+  const onDeparture = (iso: string) => {
+    recomputeReporting(iso, proposed.scope, proposed.body);
+  };
+
+  // Scope/body changes — keep ETD where it is, recompute Reporting from it.
+  const onScopeChange = (s: ProposedFlight['scope']) => {
+    const etd = proposed.estimatedDepartureLocal ?? proposed.reportingTimeLocal;
+    if (etd) recomputeReporting(etd, s, proposed.body); else set('scope', s);
+  };
+  const onBodyChange = (b: ProposedFlight['body']) => {
+    const etd = proposed.estimatedDepartureLocal ?? proposed.reportingTimeLocal;
+    if (etd) recomputeReporting(etd, proposed.scope, b); else set('body', b);
   };
 
   return (
@@ -135,7 +151,7 @@ export default function ProposedFlightPanel({ proposed, onChange }: Props) {
             <Tooltip title="Scope (داخلی/بین‌المللی)" text={<>پروازهای <b>بین‌المللی</b> Reporting Time طولانی‌تری دارند (به‌خاطر گمرک، پاسپورت، بریفینگ‌های اضافی). جدول ۷.۷: داخلی <code>1:00</code> برای Cabin، بین‌المللی <code>2:00</code> برای Cabin (در Home Base).</>} />
             Scope
           </label>
-          <select value={proposed.scope} onChange={e => set('scope', e.target.value as ProposedFlight['scope'])}>
+          <select value={proposed.scope} onChange={e => onScopeChange(e.target.value as ProposedFlight['scope'])}>
             <option value="domestic">داخلی</option>
             <option value="international">بین‌المللی</option>
           </select>
@@ -149,7 +165,7 @@ export default function ProposedFlightPanel({ proposed, onChange }: Props) {
             </>} />
             Aircraft Body
           </label>
-          <select value={proposed.body} onChange={e => set('body', e.target.value as ProposedFlight['body'])}>
+          <select value={proposed.body} onChange={e => onBodyChange(e.target.value as ProposedFlight['body'])}>
             <option value="narrow">Narrow Body</option>
             <option value="wide">Wide Body</option>
           </select>
