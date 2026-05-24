@@ -6,6 +6,7 @@ import {
 import type { DutyEntry, ProposedFlight } from '../ftl/rules/types';
 import { evaluate } from '../ftl/rules/engine';
 import { cn, toFaDigits } from '../lib/utils';
+import { checkLegality as sharedCheckLegality, type Legality } from '../lib/restGuard';
 
 // All adjacency types the user can attach to a candidate. Three standby
 // variants match the real OM-A SBA/SBB/SBF — picking one ALSO updates the
@@ -128,56 +129,7 @@ function buildAdjEntry(
 const findAdj = (history: DutyEntry[], candidateIdx: number, kind: AdjKind, position: 'before' | 'after') =>
   history.find((h) => h.id === adjId(candidateIdx, kind, position));
 
-interface Legality {
-  legal: boolean;
-  shortHours?: number;          // how many hours short of the required rest
-  earliestLegalIso?: string;    // when the standby could LEGALLY start
-  prevDutyEndIso?: string;
-  requiredRestHours?: number;
-  reason?: string;
-}
-
-/** Determine whether a proposed adjacency (with its computed natural start
- *  time) respects the required Rest after the most recent prior duty in
- *  history. Implements OM-A 7.1.4.13 in a simplified form:
- *    • Rest start offset: +1h at THR/BND, +2h at IKA, 0 elsewhere
- *    • Required Rest = max(baseRequired, previous duty duration)
- *    • baseRequired = 12h at Home Base, 10h away
- *  Day-off doesn't count — only standby/positioning/training/admin entries
- *  count as "the next duty" for rest-after purposes. */
-function checkLegality(
-  history: DutyEntry[],
-  proposedStartIso: string,
-  isHomeBase: boolean,
-  thisAdjId: string,
-): Legality {
-  const lastDuty = [...history]
-    .filter((h) =>
-      h.id !== thisAdjId &&
-      ['fdp', 'positioning', 'training', 'admin', 'airport_sb'].includes(h.kind),
-    )
-    .sort((a, b) => new Date(b.end).getTime() - new Date(a.end).getTime())[0];
-  if (!lastDuty) return { legal: true };
-
-  const prevDur = (new Date(lastDuty.end).getTime() - new Date(lastDuty.start).getTime()) / 3_600_000;
-  const baseRequired = isHomeBase ? 12 : 10;
-  const required = Math.max(baseRequired, prevDur);
-  const offsetH = lastDuty.endStation === 'home' ? (lastDuty.endsAtIKA ? 2 : 1) : 0;
-  const earliestLegalMs = new Date(lastDuty.end).getTime() + (offsetH + required) * 3_600_000;
-  const startMs = new Date(proposedStartIso).getTime();
-
-  if (startMs >= earliestLegalMs) {
-    return { legal: true, earliestLegalIso: new Date(earliestLegalMs).toISOString(), requiredRestHours: required, prevDutyEndIso: lastDuty.end };
-  }
-  return {
-    legal: false,
-    shortHours: (earliestLegalMs - startMs) / 3_600_000,
-    earliestLegalIso: new Date(earliestLegalMs).toISOString(),
-    prevDutyEndIso: lastDuty.end,
-    requiredRestHours: required,
-    reason: `Rest قانونی پس از Duty قبلی هنوز کامل نشده`,
-  };
-}
+const checkLegality = sharedCheckLegality;
 
 const STANDBY_KINDS: AdjKind[] = ['sba', 'sbb', 'sbf', 'sbc'];
 const isStandby = (k: AdjKind): boolean => STANDBY_KINDS.includes(k);

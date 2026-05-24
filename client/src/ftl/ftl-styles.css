@@ -165,6 +165,54 @@
     --line:rgba(255,255,255,0.08); --paper:#111827; --bg:#0B1220;
   }
 }
+/* App-level dark mode (class-based) — the IRCrew shell toggles a `.dark`
+   class on <html>, which the @media query above does NOT pick up. Mirror
+   the palette here so the FTL scope follows the app's theme, not the OS. */
+html.dark, .dark{
+  --ink:#F1F5F9; --ink-soft:#E2E8F0; --muted:#CBD5E1;
+  --line:rgba(255,255,255,0.10); --paper:#0F172A; --bg:#020617;
+  --pass-bg:rgba(16,185,129,0.20); --fail-bg:rgba(239,68,68,0.20);
+  --warn-bg:rgba(245,158,11,0.22); --info-bg:rgba(56,189,248,0.22);
+}
+/* Result-page surfaces — force readable contrast no matter what other rule
+   tries to override (some legacy rules hard-code light backgrounds). */
+.dark .ftl-scope .fdp-result,
+.dark .ftl-scope .summary-grid .stat,
+.dark .ftl-scope .compare-grid,
+.dark .ftl-scope .cmp-card,
+.dark .ftl-scope .analysis-block,
+.dark .ftl-scope .overduty-strip,
+.dark .ftl-scope .delay-strip,
+.dark .ftl-scope .cmd-discretion,
+.dark .ftl-scope table.calc-table,
+.dark .ftl-scope table.calc-table td {
+  color:#F1F5F9 !important;
+}
+.dark .ftl-scope .stat .lbl,
+.dark .ftl-scope .stat .sub,
+.dark .ftl-scope .analysis-block .a-section p,
+.dark .ftl-scope .analysis-block .a-section,
+.dark .ftl-scope .fdp-result .small,
+.dark .ftl-scope .cmd-discretion .small,
+.dark .ftl-scope .help {
+  color:#E2E8F0 !important;
+}
+.dark .ftl-scope .stat .val,
+.dark .ftl-scope .fdp-result .val,
+.dark .ftl-scope .cmp-stat .v,
+.dark .ftl-scope table.calc-table .value {
+  color:#F1F5F9 !important;
+}
+.dark .ftl-scope .compare-grid,
+.dark .ftl-scope .cmp-card,
+.dark .ftl-scope .summary-grid .stat,
+.dark .ftl-scope .analysis-block {
+  background:#0F172A !important;
+  border-color:rgba(255,255,255,0.10) !important;
+}
+.dark .ftl-scope .fdp-result.warn { background:rgba(217,119,6,0.30) !important; }
+.dark .ftl-scope .fdp-result.no-go { background:rgba(220,38,38,0.30) !important; }
+.dark .ftl-scope .fdp-result.go   { background:rgba(16,185,129,0.28) !important; }
 .ftl-scope .num,.ftl-scope .en{font-family:'YekanBakhFaNum','IRANSans',Tahoma,sans-serif;direction:ltr;unicode-bidi:isolate}
 
 /* Layout — mobile-first, no fixed 1280px width since IRCrew already constrains
@@ -392,6 +440,48 @@
   .ftl-scope .kind-rest,
   .ftl-scope .kind-admin      {background:rgba(100,116,139,0.30);color:#cbd5e1}
 }
+/* Mirror for class-based .dark — same overrides, same target spec. */
+.dark .ftl-scope .kind-fdp        {background:rgba(16,185,129,0.28); color:#a7f3d0}
+.dark .ftl-scope .kind-positioning{background:rgba(245,158,11,0.28); color:#fde68a}
+.dark .ftl-scope .kind-training   {background:rgba(99,102,241,0.28); color:#c7d2fe}
+.dark .ftl-scope .kind-sba,
+.dark .ftl-scope .kind-sbb,
+.dark .ftl-scope .kind-sbf        {background:rgba(245,158,11,0.28); color:#fde68a}
+.dark .ftl-scope .kind-airport_sb {background:rgba(239,68,68,0.26);  color:#fecaca}
+.dark .ftl-scope .kind-reserve    {background:rgba(139,92,246,0.28); color:#ddd6fe}
+.dark .ftl-scope .kind-day_off,
+.dark .ftl-scope .kind-recovery   {background:rgba(180,83,9,0.30);   color:#fdba74}
+.dark .ftl-scope .kind-rest,
+.dark .ftl-scope .kind-admin      {background:rgba(100,116,139,0.30);color:#cbd5e1}
+
+/* Earliest-legal-next-duty banner — sits right below the verdict strip
+   and answers "when can my next duty / standby legally start?" */
+.ftl-scope .next-legal-banner{
+  display:flex; align-items:flex-start; gap:12px;
+  padding:14px 16px; border-radius:14px; margin-bottom:14px;
+  background:linear-gradient(135deg,rgba(16,185,129,0.10),rgba(13,148,136,0.10));
+  border:1px solid rgba(16,185,129,0.35);
+  color:#064E3B; font-family:'IRANSans','YekanBakh',sans-serif;
+}
+.ftl-scope .next-legal-banner .nlb-icon{font-size:22px;line-height:1;flex-shrink:0;margin-top:1px}
+.ftl-scope .next-legal-banner .nlb-body{flex:1;min-width:0}
+.ftl-scope .next-legal-banner .nlb-title{
+  font-weight:900;font-size:12.5pt;margin-bottom:6px;color:#065F46;
+}
+.ftl-scope .next-legal-banner .nlb-row{
+  display:flex;align-items:baseline;gap:8px;font-size:11pt;margin-top:2px;
+}
+.ftl-scope .next-legal-banner .nlb-l{opacity:.80;font-weight:700;min-width:78px}
+.ftl-scope .next-legal-banner .nlb-v{font-weight:800;font-family:'YekanBakhFaNum',sans-serif}
+.ftl-scope .next-legal-banner .nlb-sub{
+  font-size:9.5pt;opacity:.65;margin-top:6px;line-height:1.6;
+}
+.dark .ftl-scope .next-legal-banner{
+  background:linear-gradient(135deg,rgba(16,185,129,0.18),rgba(13,148,136,0.18));
+  border-color:rgba(16,185,129,0.55);
+  color:#E2E8F0;
+}
+.dark .ftl-scope .next-legal-banner .nlb-title{color:#A7F3D0}
 
 /* Results */
 .ftl-scope .fdp-result{

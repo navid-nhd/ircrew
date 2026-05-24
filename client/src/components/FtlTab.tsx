@@ -343,29 +343,16 @@ export function FtlTab({ creds, position }: Props) {
 
       {tab === 'results' && (
         <>
-          <CandidateBar
-            candidates={candidates} activeIndex={activeIndex}
-            profile={profile} history={history}
-            onSelect={setActiveIndex} onAdd={addCandidate}
-            onDelete={deleteCandidate} onDuplicate={duplicateCandidate}
-          />
           {!hasCandidate ? (
             <NoCandidateEmpty onGoImport={() => setTab('history')} onAdd={addCandidate} />
           ) : (
-            <>
-              <div className="my-3">
-                <AdjacentDuties
-                  candidates={candidates}
-                  activeIndex={activeIndex}
-                  history={history}
-                  onHistoryChange={setHistory}
-                  onCandidateChange={updateActive}
-                  result={result!}
-                  evalProfile={profile}
-                />
-              </div>
-              <ResultsPanel result={result!} candidates={candidates} allResults={allResults} activeIndex={activeIndex} />
-            </>
+            <ResultsPanel
+              result={result!}
+              candidates={candidates}
+              allResults={allResults}
+              activeIndex={activeIndex}
+              history={history}
+            />
           )}
           {history.some((h) => h.kind === 'fdp') && (
             <div className="my-3">

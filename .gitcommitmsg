@@ -1,0 +1,22 @@
+Results tab: drop editor controls, surface earliest-legal-next-duty, fix dark palette
+
+1. FtlTab: results tab no longer renders CandidateBar or AdjacentDuties.
+   The user reaches them via the dedicated "flight" tab. Removes the
+   "adding standby/flight" controls that polluted the result view.
+
+2. ResultsPanel: new banner under the verdict strip that answers
+   "نزدیک‌ترین استندبای / پرواز قانونی پس از این FDP می‌تواند از کِی
+   شروع شود؟". Uses the active candidate's FDP as the synthetic prior
+   duty + OM-A 7.1.4.13 rest math.
+
+3. New shared helper lib/restGuard.ts (checkLegality + earliestLegalNextDuty)
+   replaces the local copy in AdjacentDuties so the same logic powers both
+   the editor's IllegalWarning AND the new result banner.
+
+4. ftl-styles.css: the original FTL palette only switches on
+   @media (prefers-color-scheme: dark) — but the IRCrew shell uses a
+   class-based .dark on <html>, so the FTL scope was stuck on light
+   colors in app dark mode (washed-out white-on-white text in results).
+   Added :root.dark / .dark overrides for the palette vars AND explicit
+   !important rules for the verdict strip, summary stat cards, kind
+   badges, compare grid, analysis blocks, tables, and the new banner.

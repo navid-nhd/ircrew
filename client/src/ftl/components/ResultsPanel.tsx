@@ -1,11 +1,15 @@
-import type { RuleEngineResult, CheckResult, AnalysisDetail, ProposedFlight, CalculationStep } from '../rules/types';
+import type { RuleEngineResult, CheckResult, AnalysisDetail, ProposedFlight, CalculationStep, DutyEntry } from '../rules/types';
 import { toJalaali } from 'jalaali-js';
+import { earliestLegalNextDuty } from '../../lib/restGuard';
 
 interface Props {
   result: RuleEngineResult;
   candidates?: ProposedFlight[];
   allResults?: RuleEngineResult[];
   activeIndex?: number;
+  /** Recent duty history — used to compute "earliest legal start of next
+   *  standby/duty" so the user knows when they're free again. */
+  history?: DutyEntry[];
 }
 
 const ICON: Record<CheckResult['status'], string> = {
@@ -25,7 +29,28 @@ const fmtTime = (iso: string): string => {
   return toFa(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`);
 };
 
-export default function ResultsPanel({ result, candidates, allResults, activeIndex }: Props) {
+export default function ResultsPanel({ result, candidates, allResults, activeIndex, history }: Props) {
+  // Earliest legal start of the NEXT standby/duty after the active candidate
+  // (computed by treating the candidate as the prior duty in history).
+  const activeCand = candidates && activeIndex != null ? candidates[activeIndex] : undefined;
+  const nextLegal = (() => {
+    if (!activeCand || !history) return null;
+    const rep = new Date(activeCand.reportingTimeLocal);
+    const arr = activeCand.estimatedArrivalLocal
+      ? new Date(activeCand.estimatedArrivalLocal)
+      : new Date(rep.getTime() + 8 * 3_600_000);
+    const fdpEnd = new Date(arr.getTime() + 30 * 60_000);
+    const synthetic: DutyEntry = {
+      id: '__active_candidate__',
+      kind: 'fdp',
+      start: rep.toISOString(),
+      end: fdpEnd.toISOString(),
+      startStation: activeCand.departureStation,
+      endStation: activeCand.arrivalStation,
+    };
+    return earliestLegalNextDuty([...history, synthetic], activeCand.arrivalStation === 'home');
+  })();
+
   const fails = result.checks.filter(c => c.status === 'fail');
   const warns = result.checks.filter(c => c.status === 'warn');
   const passes = result.checks.filter(c => c.status === 'pass');
@@ -132,6 +157,31 @@ export default function ResultsPanel({ result, candidates, allResults, activeInd
           <div className="val">{result.fdpAllowedHHMM ?? '—'}</div>
         </div>
       </div>
+
+      {/* Earliest-legal-next-duty banner — answers "وقتی برمی‌گردم، نزدیک‌ترین
+          استندبای/پرواز قانونی بعدی از کِی می‌تواند شروع شود؟" */}
+      {nextLegal && (
+        <div className="next-legal-banner" dir="rtl">
+          <div className="nlb-icon">⏱️</div>
+          <div className="nlb-body">
+            <div className="nlb-title">نزدیک‌ترین استندبای / پرواز قانونی پس از این FDP</div>
+            <div className="nlb-row">
+              <span className="nlb-l">می‌توانی از:</span>
+              <span className="nlb-v num" dir="ltr">
+                {fmtJDate(nextLegal.earliestIso)} · {fmtTime(nextLegal.earliestIso)}
+              </span>
+            </div>
+            <div className="nlb-row">
+              <span className="nlb-l">Rest قانونی:</span>
+              <span className="nlb-v num">≥ {toFa(nextLegal.requiredHours.toFixed(1))}h</span>
+            </div>
+            <div className="nlb-sub">
+              (پس از پایان FDP در <span className="num" dir="ltr">{fmtTime(nextLegal.priorEndIso)}</span>{' '}
+              + Check-out و افست Rest)
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Over-Duty strip */}
       {overDutyClass && (
