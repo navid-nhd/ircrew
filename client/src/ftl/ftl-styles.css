@@ -943,6 +943,18 @@ table.calc-table .ref{
 }
 table.calc-table td{color:#0F172A}
 table.calc-table tbody tr:nth-child(even) td{background:#F8FAFC}
+
+/* Dark mode for the calc-table cells we re-styled above. The earlier .dark
+   rules covered <td>, but the cell-specific colors (.num/.label/.formula/
+   .value/.ref) and the zebra-stripe background needed their own overrides
+   so dark mode doesn't get a bright white stripe with light text. */
+.dark .ftl-scope table.calc-table .num     { color:#94A3B8 !important; }
+.dark .ftl-scope table.calc-table .label   { color:#F1F5F9 !important; }
+.dark .ftl-scope table.calc-table .formula { color:#E2E8F0 !important; }
+.dark .ftl-scope table.calc-table .value   { color:#A7F3D0 !important; }
+.dark .ftl-scope table.calc-table .ref     { color:#94A3B8 !important; }
+.dark .ftl-scope table.calc-table tbody tr:nth-child(even) td { background:rgba(255,255,255,0.04) !important; }
+.dark .ftl-scope table.calc-table tbody tr:nth-child(odd)  td { background:transparent !important; }
 table.calc-table tr.final{background:#fff8e6;border-top:2px solid var(--gold)}
 table.calc-table tr.final .value{color:var(--gold);font-size:10.5pt}
 

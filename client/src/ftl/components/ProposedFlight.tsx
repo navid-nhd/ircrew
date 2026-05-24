@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ProposedFlight } from '../rules/types';
 import PersianDateTime from './PersianDateTime';
 import Tooltip from './Tooltip';
+
+const toFa = (s: string | number) => String(s).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[parseInt(d, 10)]);
 
 interface Props {
   proposed: ProposedFlight;
@@ -63,6 +65,33 @@ export default function ProposedFlightPanel({ proposed, onChange }: Props) {
     if (etd) recomputeReporting(etd, proposed.scope, b); else set('body', b);
   };
 
+  // Normalize on mount / when the candidate identity changes: if the stored
+  // Reporting doesn't match what ETD + current scope/body would imply, fix it
+  // ONCE silently so the user sees a consistent state. This catches imported
+  // candidates (where ETD = Reporting initially) and any legacy 1h-offset
+  // values that were persisted in localStorage before the offset rules were
+  // implemented properly.
+  useEffect(() => {
+    const etd = proposed.estimatedDepartureLocal;
+    const rep = proposed.reportingTimeLocal;
+    if (!etd || !rep) return;
+    const expected = new Date(etd).getTime() - offsetMinFor(proposed.scope, proposed.body) * 60_000;
+    const actual = new Date(rep).getTime();
+    if (Math.abs(expected - actual) > 60_000) {
+      // Off by more than a minute → force-recompute (won't loop because the
+      // updated reporting matches `expected` exactly).
+      recomputeReporting(etd, proposed.scope, proposed.body);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [proposed.label]);
+
+  // Current applied offset (minutes) — shown to the user as a small chip so
+  // there's no more guessing what gap is in effect.
+  const currentOffsetMin = offsetMinFor(proposed.scope, proposed.body);
+  const offsetH = Math.floor(currentOffsetMin / 60);
+  const offsetMM = currentOffsetMin % 60;
+  const offsetLabel = offsetMM === 0 ? `${toFa(offsetH)} ساعت` : `${toFa(offsetH)}:${toFa(String(offsetMM).padStart(2, '0'))}`;
+
   return (
     <div className="card">
       <h2>۳. مشخصات پرواز پیشنهادی</h2>
@@ -119,6 +148,16 @@ export default function ProposedFlightPanel({ proposed, onChange }: Props) {
               <br /><br />فاصلهٔ معمول از Departure: داخلی NB <code>1:00</code>، داخلی WB <code>1:30</code>، بین‌المللی <code>2:00</code> (طبق جدول ۷.۷).
             </>} />
             <span className="ref">7.1.4.11</span> زمان حضور
+            <span style={{
+              display: 'inline-block',
+              marginRight: 6, padding: '2px 8px',
+              background: 'rgba(16,185,129,0.14)',
+              color: '#065F46',
+              border: '1px solid rgba(16,185,129,0.40)',
+              borderRadius: 999,
+              fontSize: 10, fontWeight: 800,
+              fontFamily: "'IRANSans','YekanBakhFaNum',sans-serif",
+            }}>{offsetLabel} قبل از ETD</span>
           </label>
           <PersianDateTime value={proposed.reportingTimeLocal} onChange={onReport} />
         </div>
