@@ -1,6 +1,6 @@
 import type { RuleEngineResult, CheckResult, AnalysisDetail, ProposedFlight, CalculationStep, DutyEntry } from '../rules/types';
 import { toJalaali } from 'jalaali-js';
-import { earliestLegalNextDuty } from '../../lib/restGuard';
+import { earliestLegalNextDuty, checkLegality } from '../../lib/restGuard';
 
 interface Props {
   result: RuleEngineResult;
@@ -65,6 +65,40 @@ export default function ResultsPanel({ result, candidates, allResults, activeInd
     return earliestLegalNextDuty([...history, synthetic], activeCand.arrivalStation === 'home');
   })();
 
+  // If the user planned a custom AFTER-flight standby for tomorrow (sbc-after
+  // in AdjacentDuties), check whether its start time still respects Rest from
+  // the current FDP. The editor itself already warns, but if the user moved
+  // to the Results tab without removing an illegal entry we surface it here.
+  const afterStandbyAlert = (() => {
+    if (!activeCand || !history || activeIndex == null) return null;
+    const sbcAfterId = `adj-${activeIndex}-sbc-after`;
+    const sbcAfter = history.find((h) => h.id === sbcAfterId);
+    if (!sbcAfter) return null;
+
+    const rep = new Date(activeCand.reportingTimeLocal);
+    const arr = activeCand.estimatedArrivalLocal
+      ? new Date(activeCand.estimatedArrivalLocal)
+      : new Date(rep.getTime() + 8 * 3_600_000);
+    const fdpEnd = new Date(arr.getTime() + 30 * 60_000);
+    const synthetic: DutyEntry = {
+      id: '__active_candidate_for_after_check__',
+      kind: 'fdp',
+      start: rep.toISOString(),
+      end: fdpEnd.toISOString(),
+      startStation: activeCand.departureStation,
+      endStation: activeCand.arrivalStation,
+    };
+    const histWithoutSelf = history.filter((h) => h.id !== sbcAfterId);
+    const legality = checkLegality(
+      [...histWithoutSelf, synthetic],
+      sbcAfter.start,
+      activeCand.arrivalStation === 'home',
+      sbcAfterId,
+    );
+    if (legality.legal) return null;
+    return { legality, sbStartIso: sbcAfter.start };
+  })();
+
   const fails = result.checks.filter(c => c.status === 'fail');
   const warns = result.checks.filter(c => c.status === 'warn');
   const passes = result.checks.filter(c => c.status === 'pass');
@@ -95,6 +129,41 @@ export default function ResultsPanel({ result, candidates, allResults, activeInd
 
   return (
     <div>
+      {/* Illegal AFTER-flight standby — top-of-page red alert. Mirrors the
+          warning shown inside the AdjacentDuties editor so a user who jumped
+          straight to Results sees it too. */}
+      {afterStandbyAlert && (() => {
+        const dt = fmtJDateLong(afterStandbyAlert.sbStartIso);
+        const earliest = afterStandbyAlert.legality.earliestLegalIso
+          ? fmtJDateLong(afterStandbyAlert.legality.earliestLegalIso)
+          : null;
+        return (
+          <div className="illegal-after-banner" dir="rtl">
+            <div className="iab-icon">⚠️</div>
+            <div className="iab-body">
+              <div className="iab-title">استندبای فردا قانونی نیست</div>
+              <div className="iab-msg">
+                استندبای برنامه‌ریزی‌شده برای{' '}
+                <b>{dt.weekday} {dt.day} {dt.month} ساعت {fmtTime(afterStandbyAlert.sbStartIso)}</b>{' '}
+                <b className="iab-short num">
+                  {toFa((afterStandbyAlert.legality.shortHours ?? 0).toFixed(1))} ساعت
+                </b>{' '}
+                پیش از پایان Rest قانونی پس از این FDP شروع می‌شود.
+              </div>
+              {earliest && afterStandbyAlert.legality.earliestLegalIso && (
+                <div className="iab-fix">
+                  زودترین زمان مجاز برای شروع آن:{' '}
+                  <b>
+                    {earliest.weekday} {earliest.day} {earliest.month} ساعت{' '}
+                    {fmtTime(afterStandbyAlert.legality.earliestLegalIso)}
+                  </b>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Comparison cards when multiple candidates — mobile-friendly grid */}
       {hasMultipleCandidates && (
         <div className="compare-grid">

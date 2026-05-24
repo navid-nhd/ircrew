@@ -513,6 +513,51 @@ html.dark, .dark{
 .dark .ftl-scope .kind-rest,
 .dark .ftl-scope .kind-admin      {background:rgba(100,116,139,0.30);color:#cbd5e1}
 
+/* Illegal AFTER-flight standby alert — red, sits ABOVE the verdict strip
+   so the user can't miss it. Mirrors the editor's warning. */
+.ftl-scope .illegal-after-banner{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:14px 16px;border-radius:14px;margin-bottom:14px;
+  background:linear-gradient(135deg, rgba(220,38,38,0.10), rgba(190,18,60,0.08));
+  border:1.5px solid rgba(220,38,38,0.50);
+  color:#7F1D1D;
+  font-family:'IRANSans','YekanBakh',sans-serif;
+  direction:rtl;
+  box-shadow:0 4px 14px -6px rgba(220,38,38,0.25);
+}
+.ftl-scope .illegal-after-banner .iab-icon{font-size:24px;line-height:1;flex-shrink:0;margin-top:1px}
+.ftl-scope .illegal-after-banner .iab-body{flex:1;min-width:0}
+.ftl-scope .illegal-after-banner .iab-title{
+  font-weight:900;font-size:13pt;margin-bottom:4px;color:#991B1B;
+}
+.ftl-scope .illegal-after-banner .iab-msg{
+  font-size:11pt;line-height:1.7;color:#7F1D1D;font-weight:500;
+}
+.ftl-scope .illegal-after-banner .iab-msg b{color:#991B1B;font-weight:800}
+.ftl-scope .illegal-after-banner .iab-short{
+  background:rgba(220,38,38,0.15);
+  padding:1px 8px;border-radius:6px;
+  font-family:'YekanBakhFaNum','IRANSans',sans-serif;
+}
+.ftl-scope .illegal-after-banner .iab-fix{
+  margin-top:8px;padding-top:8px;
+  border-top:1px dashed rgba(220,38,38,0.30);
+  font-size:10.5pt;line-height:1.7;color:#7F1D1D;font-weight:500;
+}
+.ftl-scope .illegal-after-banner .iab-fix b{color:#991B1B;font-weight:800}
+
+.dark .ftl-scope .illegal-after-banner{
+  background:linear-gradient(135deg, rgba(220,38,38,0.22), rgba(190,18,60,0.18));
+  border-color:rgba(248,113,113,0.55);
+  color:#FECACA;
+}
+.dark .ftl-scope .illegal-after-banner .iab-title{color:#FCA5A5}
+.dark .ftl-scope .illegal-after-banner .iab-msg{color:#FECACA}
+.dark .ftl-scope .illegal-after-banner .iab-msg b{color:#FCA5A5}
+.dark .ftl-scope .illegal-after-banner .iab-fix{color:#FECACA;border-top-color:rgba(248,113,113,0.40)}
+.dark .ftl-scope .illegal-after-banner .iab-fix b{color:#FCA5A5}
+.dark .ftl-scope .illegal-after-banner .iab-short{background:rgba(220,38,38,0.30);color:#FECACA}
+
 /* Earliest-legal-next-duty banner — sits right below the verdict strip
    and answers "when can my next duty / standby legally start?" */
 .ftl-scope .next-legal-banner{
