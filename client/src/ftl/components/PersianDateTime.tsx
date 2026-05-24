@@ -19,11 +19,16 @@ const PERSIAN_MONTHS = [
 ];
 
 const toFa = (n: number) => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[parseInt(d, 10)]);
+const pad2 = (n: number) => String(n).padStart(2, '0');
 
 /**
- * A simple, dependency-light Persian (Jalali) date+time picker.
- * Shows three selects (year / month / day) plus a native HTML time input.
- * Stores the value internally as an ISO datetime string.
+ * Persian (Jalali) date+time picker — four selects so EVERY value is
+ * reachable on every locale:
+ *
+ *   ‏ سال / ماه / روز / ساعت (۰۰–۲۳) / دقیقه (۰۰–۵۵ step 5)
+ *
+ * Avoids the native <input type="time"> which renders as a 12-hour AM/PM
+ * spinner in many browser/locale combos and hides midnight (00:00).
  */
 export default function PersianDateTime({
   value, onChange, withTime = true, minJYear, maxJYear,
@@ -65,16 +70,26 @@ export default function PersianDateTime({
   const setY = (y: number) => emit({ jy: y, jm, jd, hh, mm });
   const setM = (m: number) => emit({ jy, jm: m, jd, hh, mm });
   const setD = (d: number) => emit({ jy, jm, jd: d, hh, mm });
-  const setT = (s: string) => {
-    const [h, mi] = s.split(':').map(Number);
-    emit({ jy, jm, jd, hh: h ?? 0, mm: mi ?? 0 });
-  };
-
-  const timeStr = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+  const setH = (h: number) => emit({ jy, jm, jd, hh: h, mm });
+  const setMin = (mi: number) => emit({ jy, jm, jd, hh, mm: mi });
 
   // Year list, descending (newest first)
   const years: number[] = [];
   for (let y = yMax; y >= yMin; y--) years.push(y);
+
+  // Minute steps — 5 minutes is granular enough for crew scheduling and
+  // keeps the dropdown short (12 items).
+  const minuteOptions: number[] = [];
+  for (let m = 0; m <= 55; m += 5) minuteOptions.push(m);
+  // Always include the current minute so an externally-set odd value stays
+  // visible (e.g. when initial value is 04:23).
+  if (!minuteOptions.includes(mm)) {
+    minuteOptions.push(mm);
+    minuteOptions.sort((a, b) => a - b);
+  }
+
+  const hourOptions: number[] = [];
+  for (let h = 0; h <= 23; h++) hourOptions.push(h);
 
   return (
     <div className="pdt-wrap">
@@ -94,13 +109,19 @@ export default function PersianDateTime({
         ))}
       </select>
       {withTime && (
-        <input
-          type="time"
-          className="pdt-time"
-          value={timeStr}
-          onChange={(e) => setT(e.target.value)}
-          aria-label="ساعت"
-        />
+        <div className="pdt-time-group" dir="ltr">
+          <select className="pdt-part pdt-hh" value={hh} onChange={(e) => setH(Number(e.target.value))} aria-label="ساعت">
+            {hourOptions.map((h) => (
+              <option key={h} value={h}>{pad2(h)}</option>
+            ))}
+          </select>
+          <span className="pdt-sep">:</span>
+          <select className="pdt-part pdt-mm" value={mm} onChange={(e) => setMin(Number(e.target.value))} aria-label="دقیقه">
+            {minuteOptions.map((m) => (
+              <option key={m} value={m}>{pad2(m)}</option>
+            ))}
+          </select>
+        </div>
       )}
     </div>
   );

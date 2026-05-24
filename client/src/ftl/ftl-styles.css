@@ -213,6 +213,44 @@ html.dark, .dark{
 .dark .ftl-scope .fdp-result.warn { background:rgba(217,119,6,0.30) !important; }
 .dark .ftl-scope .fdp-result.no-go { background:rgba(220,38,38,0.30) !important; }
 .dark .ftl-scope .fdp-result.go   { background:rgba(16,185,129,0.28) !important; }
+
+/* ─── Nested sections in dark mode ───────────────────────────────────────
+   Many legacy rules hard-code light backgrounds (#fafcff, #fff5f4, #f0f9f3,
+   #eef6ff, #fff8e6, #fff4e0, etc). In class-based dark mode the text vars
+   become light but the backgrounds stay light → unreadable. Replace each
+   with a dark, tinted background that matches the section's semantic color. */
+.dark .ftl-scope .analysis-block .a-section            { background:rgba(15,23,42,0.55) !important; color:#E2E8F0 !important; }
+.dark .ftl-scope .analysis-block .a-section.violation  { background:rgba(220,38,38,0.18) !important; }
+.dark .ftl-scope .analysis-block .a-section.remedy     { background:rgba(16,185,129,0.18) !important; }
+.dark .ftl-scope .analysis-block .a-section.calc       { background:rgba(2,132,199,0.18) !important; }
+.dark .ftl-scope .analysis-block .a-section h4         { color:#A7F3D0 !important; }
+.dark .ftl-scope .analysis-block .a-section p          { color:#F1F5F9 !important; }
+.dark .ftl-scope .analysis-block .a-vals               { background:rgba(15,23,42,0.6) !important; color:#E2E8F0 !important; }
+
+/* Compare grid / per-candidate cards */
+.dark .ftl-scope .compare-grid                         { background:#0F172A !important; }
+.dark .ftl-scope .cmp-card                             { background:#1E293B !important; color:#F1F5F9 !important; border-color:rgba(255,255,255,0.10) !important; }
+.dark .ftl-scope .cmp-card.warn                        { background:rgba(217,119,6,0.20) !important; }
+.dark .ftl-scope .cmp-card.no-go                       { background:rgba(220,38,38,0.22) !important; }
+.dark .ftl-scope .cmp-card *                           { color:inherit !important; }
+
+/* Over-Duty / cmd-discretion / delay strips */
+.dark .ftl-scope .overduty-strip.safe                  { background:rgba(16,185,129,0.20) !important; color:#A7F3D0 !important; }
+.dark .ftl-scope .overduty-strip.cmd                   { background:rgba(217,119,6,0.22) !important; color:#FDE68A !important; }
+.dark .ftl-scope .overduty-strip.danger                { background:rgba(220,38,38,0.22) !important; color:#FECACA !important; }
+.dark .ftl-scope .delay-strip                          { background:rgba(217,119,6,0.18) !important; color:#FDE68A !important; border-color:rgba(217,119,6,0.45) !important; }
+.dark .ftl-scope .cmd-discretion                       { color:#F1F5F9 !important; }
+
+/* Calc table — final row was hardcoded gold */
+.dark .ftl-scope table.calc-table                      { background:#0F172A !important; color:#E2E8F0 !important; }
+.dark .ftl-scope table.calc-table th                   { background:rgba(16,185,129,0.22) !important; color:#A7F3D0 !important; }
+.dark .ftl-scope table.calc-table td                   { color:#E2E8F0 !important; border-color:rgba(255,255,255,0.08) !important; }
+.dark .ftl-scope table.calc-table tr.final             { background:rgba(184,148,107,0.25) !important; }
+.dark .ftl-scope table.calc-table tr.final td          { color:#FDE68A !important; }
+
+/* Collapsible <details> wrappers (calc-details) */
+.dark .ftl-scope .calc-details                         { background:rgba(15,23,42,0.6) !important; color:#E2E8F0 !important; border-color:rgba(255,255,255,0.10) !important; }
+.dark .ftl-scope .calc-details summary                 { color:#A7F3D0 !important; }
 .ftl-scope .num,.ftl-scope .en{font-family:'YekanBakhFaNum','IRANSans',Tahoma,sans-serif;direction:ltr;unicode-bidi:isolate}
 
 /* Layout — mobile-first, no fixed 1280px width since IRCrew already constrains
@@ -601,21 +639,62 @@ html.dark, .dark{
   display:inline-block;
 }
 
-/* â”€â”€â”€ Persian date+time wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-.pdt-wrap{display:flex;gap:5px;align-items:stretch;flex-wrap:wrap}
-.pdt-part,.pdt-time{
-  padding:8px 8px;border:1px solid var(--line);border-radius:6px;
-  background:#fff;font-size:11pt;
+/* ─── Persian date+time picker — light/dark, 24h, midnight reachable ─── */
+.pdt-wrap{
+  display:flex;gap:6px;align-items:stretch;flex-wrap:wrap;
+  direction:rtl;
+}
+.pdt-part{
+  flex:1;min-width:68px;
+  min-height:44px;                      /* iOS-friendly touch target */
+  padding:8px 10px;
+  border:1px solid #94A3B8;
+  border-radius:10px;
+  background:#FFFFFF;
+  color:#0F172A;
+  font-size:13pt;font-weight:800;
   font-family:'YekanBakhFaNum','IRANSans',sans-serif;
   text-align:center;
+  appearance:none;-webkit-appearance:none;
+  cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,#059669 50%),
+                   linear-gradient(135deg,#059669 50%,transparent 50%);
+  background-position:calc(100% - 14px) 50%, calc(100% - 8px) 50%;
+  background-size:6px 6px, 6px 6px;
+  background-repeat:no-repeat;
+  padding-left:28px;
 }
-.pdt-part{flex:1;min-width:60px}
 .pdt-month{flex:1.6}
-.pdt-time{flex:0 0 auto;width:96px;direction:ltr}
-.pdt-part:focus,.pdt-time:focus{
-  outline:none;border-color:var(--brand-2);
-  box-shadow:0 0 0 3px rgba(21,99,154,.1);
+.pdt-part:focus{
+  outline:none;border-color:#059669;
+  box-shadow:0 0 0 3px rgba(16,185,129,.20);
 }
+/* The time block is a separate inline-flex row so the HH : MM pair stays
+   visually together even when the four date selects wrap to a new line. */
+.pdt-time-group{
+  display:inline-flex;align-items:stretch;gap:4px;
+  direction:ltr;
+}
+.pdt-hh, .pdt-mm{flex:0 0 auto;min-width:72px;padding-left:24px;background-position:calc(100% - 12px) 50%, calc(100% - 6px) 50%;}
+.pdt-sep{
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:18pt;font-weight:900;color:#059669;padding:0 2px;
+  font-family:'YekanBakhFaNum',monospace;
+}
+
+/* Dark mode — invert select chrome so the text is readable. */
+.dark .pdt-part{
+  background:#0F172A !important;
+  color:#F1F5F9 !important;
+  border-color:#10B981 !important;
+  background-image:linear-gradient(45deg,transparent 50%,#34D399 50%),
+                   linear-gradient(135deg,#34D399 50%,transparent 50%) !important;
+}
+.dark .pdt-part:focus{
+  box-shadow:0 0 0 3px rgba(52,211,153,.30) !important;
+}
+.dark .pdt-part option{background:#0F172A;color:#F1F5F9}
+.dark .pdt-sep{color:#34D399}
 
 /* â”€â”€â”€ Persian date picker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .rmdp-input-fa{
