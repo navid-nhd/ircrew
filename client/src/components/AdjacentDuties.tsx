@@ -7,7 +7,7 @@ import type { DutyEntry, ProposedFlight } from '../ftl/rules/types';
 import { evaluate } from '../ftl/rules/engine';
 import { cn, toFaDigits } from '../lib/utils';
 import { checkLegality as sharedCheckLegality, type Legality } from '../lib/restGuard';
-import PersianDateTime from '../ftl/components/PersianDateTime';
+import { PersianDateTimeButton } from './PersianDateTimeSheet';
 
 // All adjacency types the user can attach to a candidate. Three standby
 // variants match the real OM-A SBA/SBB/SBF — picking one ALSO updates the
@@ -521,8 +521,8 @@ export function AdjacentDuties({
             </div>
 
             <div>
-              <label className="block text-[10.5px] font-extrabold opacity-70 mb-1">شروع استندبای (تاریخ شمسی)</label>
-              <PersianDateTime value={customStart} onChange={setCustomStart} />
+              <label className="block text-[10.5px] font-extrabold opacity-70 mb-1">شروع استندبای</label>
+              <PersianDateTimeButton value={customStart} onChange={setCustomStart} />
             </div>
 
             <div>
@@ -651,8 +651,8 @@ export function AdjacentDuties({
             </div>
 
             <div>
-              <label className="block text-[10.5px] font-extrabold opacity-70 mb-1">شروع استندبای (تاریخ شمسی)</label>
-              <PersianDateTime value={customAfterStart} onChange={setCustomAfterStart} />
+              <label className="block text-[10.5px] font-extrabold opacity-70 mb-1">شروع استندبای</label>
+              <PersianDateTimeButton value={customAfterStart} onChange={setCustomAfterStart} />
             </div>
 
             <div>
