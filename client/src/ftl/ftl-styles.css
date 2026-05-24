@@ -79,6 +79,58 @@
 .dark .ftl-scope .card h2 { color:#A7F3D0 !important; }
 .dark .ftl-scope .card h3 { color:#E2E8F0 !important; }
 
+/* ─── Result-panel checks (.check rows) — readable in both modes ───────── */
+.ftl-scope .check { color:#0F172A !important; }
+.ftl-scope .check .title { color:#0F172A !important; font-weight:800 !important; }
+.ftl-scope .check .msg   { color:#1E293B !important; font-weight:500 !important; }
+.ftl-scope .check .vals  { color:#334155 !important; }
+.ftl-scope .check .ref   { background:#FFFFFF !important; color:#065F46 !important; border-color:#10B981 !important; font-weight:800; }
+.ftl-scope .check.pass { background:rgba(16,185,129,0.14) !important; border-right-color:#059669 !important; }
+.ftl-scope .check.fail { background:rgba(220,38,38,0.14) !important; border-right-color:#DC2626 !important; }
+.ftl-scope .check.warn { background:rgba(217,119,6,0.16) !important; border-right-color:#D97706 !important; }
+.ftl-scope .check.info { background:rgba(2,132,199,0.14) !important; border-right-color:#0284C7 !important; }
+
+.dark .ftl-scope .check { color:#F1F5F9 !important; }
+.dark .ftl-scope .check .title { color:#F1F5F9 !important; }
+.dark .ftl-scope .check .msg   { color:#E2E8F0 !important; }
+.dark .ftl-scope .check .vals  { color:#CBD5E1 !important; }
+.dark .ftl-scope .check .ref   { background:#0F172A !important; color:#A7F3D0 !important; border-color:#10B981 !important; }
+.dark .ftl-scope .check.pass { background:rgba(16,185,129,0.22) !important; }
+.dark .ftl-scope .check.fail { background:rgba(220,38,38,0.26) !important; }
+.dark .ftl-scope .check.warn { background:rgba(217,119,6,0.28) !important; }
+.dark .ftl-scope .check.info { background:rgba(2,132,199,0.24) !important; }
+
+/* ─── Tooltip bubble — always readable, never washed out ────────────── */
+.ftl-scope .tt-bubble {
+  background:#FFFFFF !important;
+  color:#0F172A !important;
+  border-color:#0F766E !important;
+  box-shadow:0 12px 28px -8px rgba(15,23,42,0.30) !important;
+}
+.ftl-scope .tt-title { color:#065F46 !important; font-weight:800; }
+.ftl-scope .tt-body  { color:#1E293B !important; }
+.ftl-scope .tt-body b { color:#065F46 !important; }
+.ftl-scope .tt-body code {
+  background:rgba(16,185,129,0.14) !important;
+  color:#065F46 !important;
+}
+.ftl-scope .tt-trigger { background:#0F766E !important; color:#FFFFFF !important; }
+.ftl-scope .tt-trigger:hover, .ftl-scope .tt-trigger:focus { background:#059669 !important; }
+
+.dark .ftl-scope .tt-bubble {
+  background:#0F172A !important;
+  color:#F1F5F9 !important;
+  border-color:#10B981 !important;
+  box-shadow:0 12px 28px -8px rgba(0,0,0,0.7) !important;
+}
+.dark .ftl-scope .tt-title { color:#A7F3D0 !important; }
+.dark .ftl-scope .tt-body  { color:#E2E8F0 !important; }
+.dark .ftl-scope .tt-body b { color:#A7F3D0 !important; }
+.dark .ftl-scope .tt-body code {
+  background:rgba(16,185,129,0.22) !important;
+  color:#A7F3D0 !important;
+}
+
 /* Forbid any FTL component from creating horizontal scroll. */
 .ftl-scope, .ftl-scope * { max-width:100%; }
 .ftl-scope .card, .ftl-scope .cand-bar { overflow:hidden; }

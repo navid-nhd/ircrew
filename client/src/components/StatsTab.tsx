@@ -1,26 +1,38 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Trophy, Plane, Clock, MapPin, BarChart3, Moon, Calendar, Sparkles, Globe,
+  Trophy, Plane, Clock, MapPin, BarChart3, Moon, Calendar, Sparkles, Globe, TrendingUp,
 } from 'lucide-react';
 import type { Credentials } from '../lib/types';
-import { listVault, summarizeVault } from '../lib/recordsVault';
+import { listVault, type VaultRecord } from '../lib/recordsVault';
 import { cn, toFaDigits } from '../lib/utils';
 
 interface Props {
   creds: Credentials;
 }
 
+type PeriodKey = '1m' | '3m' | '6m' | '12m' | 'all';
+
+const PERIODS: Array<{ key: PeriodKey; label: string; months: number | null }> = [
+  { key: '1m',  label: '۱ ماه',  months: 1  },
+  { key: '3m',  label: '۳ ماه',  months: 3  },
+  { key: '6m',  label: '۶ ماه',  months: 6  },
+  { key: '12m', label: '۱۲ ماه', months: 12 },
+  { key: 'all', label: 'همه',    months: null },
+];
+
 // "Year in review" style stats page driven entirely from the 24-month vault.
 // Counters animate up on first paint to give the page a celebratory feel,
 // brand-emerald gradient cards keep the IRCrew identity.
 export function StatsTab({ creds }: Props) {
-  const summary = useMemo(() => summarizeVault(creds.code), [creds.code]);
-  const records = useMemo(() => listVault(creds.code), [creds.code]);
+  const [period, setPeriod] = useState<PeriodKey>('12m');
+  const allRecords = useMemo(() => listVault(creds.code), [creds.code]);
 
-  // Derived metrics (computed lazily — vault is at most a few thousand rows)
+  const records = useMemo(() => filterByPeriod(allRecords, period), [allRecords, period]);
+  const summary = useMemo(() => summarizeRecords(records), [records]);
   const metrics = useMemo(() => deriveMetrics(records), [records]);
+  const monthSeries = useMemo(() => buildMonthlySeries(records, period), [records, period]);
 
-  if (summary.totalEntries === 0) {
+  if (allRecords.length === 0) {
     return (
       <div className="pt-6" dir="rtl">
         <EmptyState />
@@ -30,6 +42,38 @@ export function StatsTab({ creds }: Props) {
 
   return (
     <section className="pt-3 space-y-3 pb-2" dir="rtl">
+      {/* PERIOD SELECTOR */}
+      <div className="surface rounded-2xl p-2 text-slate-900 dark:text-slate-100 animate-rise">
+        <div className="flex items-center gap-1.5 px-1 pb-1.5">
+          <Calendar className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
+          <span className="text-[11.5px] font-extrabold opacity-75">بازهٔ آماری</span>
+        </div>
+        <div className="grid grid-cols-5 gap-1">
+          {PERIODS.map((p) => (
+            <button
+              key={p.key}
+              onClick={() => setPeriod(p.key)}
+              className={cn(
+                'rounded-xl py-1.5 text-[11.5px] font-extrabold transition-all',
+                period === p.key
+                  ? 'bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-md shadow-brand-700/30'
+                  : 'bg-slate-100 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700/60',
+              )}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {summary.totalEntries === 0 ? (
+        <div className="surface rounded-2xl p-5 text-center text-slate-900 dark:text-slate-100">
+          <div className="text-[32px] mb-1">🌙</div>
+          <div className="text-[12.5px] font-extrabold mb-0.5">در این بازه چیزی ثبت نشده</div>
+          <div className="text-[11px] opacity-70">یک بازهٔ بزرگ‌تر را امتحان کنید.</div>
+        </div>
+      ) : (
+      <>
       {/* HERO — total flight hours */}
       <div className="relative overflow-hidden rounded-3xl text-white p-4 ring-1 ring-white/15 shadow-2xl shadow-brand-900/40 animate-spring">
         <div className="absolute inset-0 bg-gradient-to-br from-brand-500 via-brand-700 to-brand-950 animate-gradient" />
@@ -43,7 +87,7 @@ export function StatsTab({ creds }: Props) {
             <div className="text-[11px] opacity-85 font-bold tracking-[0.18em]">سفر شما در یک نگاه</div>
           </div>
 
-          <div className="text-[12px] opacity-80 font-bold mb-1">مجموع ساعت پرواز ثبت‌شده</div>
+          <div className="text-[12px] opacity-80 font-bold mb-1">مجموع ساعت پرواز در این بازه</div>
           <div className="flex items-baseline gap-1.5 tabular-nums drop-shadow-lg">
             <AnimatedNumber to={Math.floor(summary.totalBlockHours)} className="text-[56px] font-black leading-none" />
             <span className="text-[14px] opacity-80 font-semibold">h</span>
@@ -61,6 +105,19 @@ export function StatsTab({ creds }: Props) {
           </div>
         </div>
       </div>
+
+      {/* MONTHLY HOURS CHART */}
+      {monthSeries.length > 0 && (
+        <div className="surface rounded-2xl p-3.5 text-slate-900 dark:text-slate-100 animate-rise">
+          <div className="flex items-center justify-between">
+            <SectionHead icon={TrendingUp} title="ساعت پرواز ماهانه" />
+            <div className="text-[10.5px] opacity-65 font-bold tabular-nums">
+              میانگین {toFaDigits(Math.round(monthSeries.reduce((s, m) => s + m.hours, 0) / Math.max(1, monthSeries.length)))}h/ماه
+            </div>
+          </div>
+          <MonthlyChart series={monthSeries} />
+        </div>
+      )}
 
       {/* HOURS BREAKDOWN */}
       <div className="surface rounded-2xl p-3.5 text-slate-900 dark:text-slate-100 animate-rise">
@@ -163,6 +220,8 @@ export function StatsTab({ creds }: Props) {
           </div>
         </div>
       )}
+      </>
+      )}
     </section>
   );
 }
@@ -170,6 +229,152 @@ export function StatsTab({ creds }: Props) {
 // ───── helpers ─────
 
 const WEEKDAY_LABELS = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
+
+// Filter the vault by the selected period (months back from latest record's
+// month). "all" returns the whole vault.
+function filterByPeriod(records: VaultRecord[], period: PeriodKey): VaultRecord[] {
+  if (period === 'all' || records.length === 0) return records;
+  const months = PERIODS.find((p) => p.key === period)?.months ?? 12;
+  // Anchor the window to the latest record so an inactive month doesn't blank
+  // the page; users on holiday still see their last N months of activity.
+  const latest = new Date(records[records.length - 1].start);
+  const cutoff = new Date(latest.getFullYear(), latest.getMonth() - months + 1, 1).getTime();
+  return records.filter((r) => new Date(r.start).getTime() >= cutoff);
+}
+
+interface RecordSummary {
+  totalEntries: number;
+  fdpCount: number;
+  totalBlockHours: number;
+  totalDutyHours: number;
+  dayOffCount: number;
+  reserveCount: number;
+  earliestIso: string | null;
+  latestIso: string | null;
+}
+
+function summarizeRecords(list: VaultRecord[]): RecordSummary {
+  let totalBlock = 0, totalDuty = 0, fdp = 0, off = 0, reserve = 0;
+  for (const r of list) {
+    if (r.kind === 'fdp') { fdp++; totalBlock += r.blockHours ?? 0; }
+    if (r.kind === 'day_off') off++;
+    if (r.kind === 'reserve') reserve++;
+    const dur = (new Date(r.end).getTime() - new Date(r.start).getTime()) / 3600_000;
+    if (['fdp', 'positioning', 'training', 'admin', 'airport_sb'].includes(r.kind)) totalDuty += dur;
+  }
+  return {
+    totalEntries: list.length,
+    fdpCount: fdp,
+    totalBlockHours: Math.round(totalBlock * 10) / 10,
+    totalDutyHours: Math.round(totalDuty * 10) / 10,
+    dayOffCount: off,
+    reserveCount: reserve,
+    earliestIso: list[0]?.start ?? null,
+    latestIso: list[list.length - 1]?.start ?? null,
+  };
+}
+
+interface MonthBucket { key: string; label: string; hours: number; flights: number }
+
+// Build a continuous monthly series so empty months still get a (zero) bar.
+function buildMonthlySeries(records: VaultRecord[], period: PeriodKey): MonthBucket[] {
+  if (records.length === 0) return [];
+  const tally = new Map<string, { hours: number; flights: number }>();
+  for (const r of records) {
+    if (r.kind !== 'fdp') continue;
+    const d = new Date(r.start);
+    const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const cur = tally.get(k) ?? { hours: 0, flights: 0 };
+    cur.hours += r.blockHours ?? 0;
+    cur.flights++;
+    tally.set(k, cur);
+  }
+  const latest = new Date(records[records.length - 1].start);
+  const monthsBack = period === 'all'
+    ? Math.min(24, monthsBetween(new Date(records[0].start), latest) + 1)
+    : (PERIODS.find((p) => p.key === period)?.months ?? 12);
+  const out: MonthBucket[] = [];
+  for (let i = monthsBack - 1; i >= 0; i--) {
+    const d = new Date(latest.getFullYear(), latest.getMonth() - i, 1);
+    const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const v = tally.get(k) ?? { hours: 0, flights: 0 };
+    out.push({
+      key: k,
+      label: PERSIAN_MONTHS_SHORT[d.getMonth()],
+      hours: Math.round(v.hours * 10) / 10,
+      flights: v.flights,
+    });
+  }
+  return out;
+}
+
+function monthsBetween(a: Date, b: Date): number {
+  return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+}
+
+const PERSIAN_MONTHS_SHORT = ['ژان', 'فور', 'مار', 'آپر', 'می', 'ژون', 'ژوی', 'آگو', 'سپ', 'اکت', 'نوا', 'دس'];
+
+// Pure-SVG bar chart — horizontal sliding feel via RTL layout.
+function MonthlyChart({ series }: { series: MonthBucket[] }) {
+  const max = Math.max(...series.map((m) => m.hours), 1);
+  const [hover, setHover] = useState<number | null>(null);
+  return (
+    <div className="mt-3">
+      <div className="relative h-32" dir="ltr">
+        <svg viewBox={`0 0 ${series.length * 36} 130`} preserveAspectRatio="none" className="w-full h-full">
+          <defs>
+            <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#34D399" />
+              <stop offset="100%" stopColor="#047857" />
+            </linearGradient>
+            <linearGradient id="barGradHot" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#FBBF24" />
+              <stop offset="100%" stopColor="#DC2626" />
+            </linearGradient>
+          </defs>
+          {/* grid lines */}
+          {[0.25, 0.5, 0.75, 1].map((g) => (
+            <line
+              key={g}
+              x1={0} x2={series.length * 36}
+              y1={110 - 100 * g} y2={110 - 100 * g}
+              stroke="currentColor" strokeOpacity={0.10} strokeDasharray="2,3"
+            />
+          ))}
+          {series.map((m, i) => {
+            const h = Math.max(2, Math.round((m.hours / max) * 100));
+            const x = i * 36 + 4;
+            const y = 110 - h;
+            const hot = m.hours > max * 0.85;
+            return (
+              <g key={m.key} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} style={{ cursor: 'pointer' }}>
+                <rect x={x} y={y} width={28} height={h} rx={4}
+                  fill={hot ? 'url(#barGradHot)' : 'url(#barGrad)'}
+                  opacity={hover === null || hover === i ? 1 : 0.45}
+                />
+                {hover === i && (
+                  <text x={x + 14} y={y - 4} textAnchor="middle"
+                    fontSize="9" fontWeight="800" fill="currentColor">
+                    {toFaDigits(m.hours.toFixed(1))}h
+                  </text>
+                )}
+                <text x={x + 14} y={124} textAnchor="middle"
+                  fontSize="8.5" fontWeight="700" fill="currentColor" opacity={0.65}>
+                  {m.label}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+      {hover !== null && (
+        <div className="mt-1 text-center text-[10.5px] font-bold opacity-80 tabular-nums">
+          {series[hover].label} · {toFaDigits(series[hover].flights)} پرواز · {toFaDigits(series[hover].hours.toFixed(1))} ساعت
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface Metrics {
   uniqueDestinations: number;
@@ -181,7 +386,7 @@ interface Metrics {
   achievements: Array<{ id: string; emoji: string; title: string; subtitle: string; tone: 'gold' | 'silver' | 'bronze' }>;
 }
 
-function deriveMetrics(records: ReturnType<typeof listVault>): Metrics {
+function deriveMetrics(records: VaultRecord[]): Metrics {
   const fdps = records.filter((r) => r.kind === 'fdp');
   const destinations = new Set<string>();
   const airports = new Set<string>();
