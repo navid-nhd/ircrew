@@ -7,6 +7,7 @@ import type { DutyEntry, ProposedFlight } from '../ftl/rules/types';
 import { evaluate } from '../ftl/rules/engine';
 import { cn, toFaDigits } from '../lib/utils';
 import { checkLegality as sharedCheckLegality, type Legality } from '../lib/restGuard';
+import PersianDateTime from '../ftl/components/PersianDateTime';
 
 // All adjacency types the user can attach to a candidate. Three standby
 // variants match the real OM-A SBA/SBB/SBF — picking one ALSO updates the
@@ -173,20 +174,14 @@ const parseHFromText = (s: string | undefined): number | null => {
 
 // Build a sensible default "custom" standby window: 04:00 the day before
 // reporting, 12 hours long — exactly matches the user's example of "4 AM
-// till 4 PM standby for next day's flight".
+// till 4 PM standby for next day's flight". Returns an ISO string so it
+// can flow straight into <PersianDateTime>.
 function defaultCustomSb(reportingIso: string): { startIso: string; durationH: number } {
   const rep = new Date(reportingIso);
   const start = new Date(rep);
   start.setDate(start.getDate() - 1);
   start.setHours(4, 0, 0, 0);
-  return { startIso: toLocalInputValue(start), durationH: 12 };
-}
-
-// <input type="datetime-local"> wants "YYYY-MM-DDTHH:mm" in LOCAL time —
-// not an ISO string with TZ. This formatter avoids the timezone-shift bug.
-function toLocalInputValue(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return { startIso: start.toISOString(), durationH: 12 };
 }
 
 export function AdjacentDuties({
@@ -200,7 +195,7 @@ export function AdjacentDuties({
   const existingCustom = findAdj(history, activeIndex, 'sbc', 'before');
   const [customOpen, setCustomOpen] = useState<boolean>(!!existingCustom);
   const [customStart, setCustomStart] = useState<string>(() => {
-    if (existingCustom) return toLocalInputValue(new Date(existingCustom.start));
+    if (existingCustom) return new Date(existingCustom.start).toISOString();
     return defaultCustomSb(candidate.reportingTimeLocal).startIso;
   });
   const [customDuration, setCustomDuration] = useState<number>(() => {
@@ -223,8 +218,8 @@ export function AdjacentDuties({
     return restEnd;
   }, [candidate.estimatedArrivalLocal, candidate.reportingTimeLocal]);
   const [customAfterStart, setCustomAfterStart] = useState<string>(() => {
-    if (existingCustomAfter) return toLocalInputValue(new Date(existingCustomAfter.start));
-    return toLocalInputValue(defaultAfterStart);
+    if (existingCustomAfter) return new Date(existingCustomAfter.start).toISOString();
+    return defaultAfterStart.toISOString();
   });
   const [customAfterDuration, setCustomAfterDuration] = useState<number>(() => {
     if (existingCustomAfter) {
@@ -526,13 +521,8 @@ export function AdjacentDuties({
             </div>
 
             <div>
-              <label className="block text-[10.5px] font-extrabold opacity-70 mb-1">شروع استندبای</label>
-              <input
-                type="datetime-local"
-                value={customStart}
-                onChange={(e) => setCustomStart(e.target.value)}
-                className="w-full h-10 rounded-lg bg-white dark:bg-slate-900 ring-1 ring-slate-300 dark:ring-slate-600 px-3 text-[12.5px] font-bold tabular-nums focus:ring-2 focus:ring-emerald-500 outline-none"
-              />
+              <label className="block text-[10.5px] font-extrabold opacity-70 mb-1">شروع استندبای (تاریخ شمسی)</label>
+              <PersianDateTime value={customStart} onChange={setCustomStart} />
             </div>
 
             <div>
@@ -661,13 +651,8 @@ export function AdjacentDuties({
             </div>
 
             <div>
-              <label className="block text-[10.5px] font-extrabold opacity-70 mb-1">شروع استندبای</label>
-              <input
-                type="datetime-local"
-                value={customAfterStart}
-                onChange={(e) => setCustomAfterStart(e.target.value)}
-                className="w-full h-10 rounded-lg bg-white dark:bg-slate-900 ring-1 ring-slate-300 dark:ring-slate-600 px-3 text-[12.5px] font-bold tabular-nums focus:ring-2 focus:ring-emerald-500 outline-none"
-              />
+              <label className="block text-[10.5px] font-extrabold opacity-70 mb-1">شروع استندبای (تاریخ شمسی)</label>
+              <PersianDateTime value={customAfterStart} onChange={setCustomAfterStart} />
             </div>
 
             <div>
