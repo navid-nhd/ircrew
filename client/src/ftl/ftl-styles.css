@@ -696,70 +696,120 @@ html.dark, .dark{
   display:inline-block;
 }
 
-/* ─── Persian date+time wrapper (3 selects + native time input) ───────── */
-.pdt-wrap{display:flex;gap:5px;align-items:stretch;flex-wrap:wrap}
-.pdt-part,.pdt-time{
-  padding:8px 8px;border:1px solid var(--line);border-radius:6px;
-  background:#fff;font-size:11pt;
-  font-family:'YekanBakhFaNum','IRANSans',sans-serif;
+/* ─── Persian date+time wrapper — mobile-first, 48px touch targets ───── */
+.pdt-wrap{
+  display:flex;gap:6px;align-items:stretch;flex-wrap:wrap;
+}
+.pdt-part{
+  flex:1;min-width:0;
+  min-height:46px;
+  padding:10px 30px 10px 10px;          /* extra right pad reserves chevron room */
+  border:1.5px solid #CBD5E1;
+  border-radius:12px;
+  background:#FFFFFF;
+  color:#0F172A;
+  font-family:'IRANSans','YekanBakh',sans-serif;
+  font-size:14px;font-weight:800;
   text-align:center;
+  appearance:none;-webkit-appearance:none;cursor:pointer;
+  transition:border-color .15s, box-shadow .15s, background-color .15s;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23059669' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:left 10px center;
 }
-.pdt-part{flex:1;min-width:60px}
-.pdt-month{flex:1.6}
-.pdt-time{flex:0 0 auto;width:96px;direction:ltr}
-.pdt-part:focus,.pdt-time:focus{
-  outline:none;border-color:var(--brand-2);
-  box-shadow:0 0 0 3px rgba(21,99,154,.1);
+.pdt-part:hover{border-color:#10B981}
+.pdt-part:focus{
+  outline:none;border-color:#10B981;
+  box-shadow:0 0 0 3px rgba(16,185,129,0.22);
 }
-/* The split-time pill — two selects glued together with a tinted gradient
-   inner background, big numerals, and a brand-colored ":" separator so it
-   reads as ONE control rather than two pasted selects. */
+.pdt-month{flex:1.4}                    /* month names are longer — give them room */
+/* Time pill — two 24h selects glued behind one border with a centered ":".
+   On mobile (under 480px) it spans the full row so the numerals stay big.
+   Chevrons are inline SVGs so they're crisp at every DPR. */
 .pdt-time-split{
-  display:inline-flex;align-items:stretch;
-  border:1.5px solid var(--brand-2);
-  border-radius:10px;
-  background:linear-gradient(135deg, rgba(16,185,129,0.10), rgba(13,148,136,0.06));
+  display:flex;align-items:stretch;
+  flex:1 1 130px;min-height:46px;
+  border:1.5px solid #10B981;
+  border-radius:12px;
+  background:#FFFFFF;
   overflow:hidden;
-  flex:0 0 auto;
-  font-family:'YekanBakhFaNum','IRANSans',sans-serif;
-  box-shadow:0 1px 0 rgba(16,185,129,0.10) inset;
-  min-height:40px;
+  font-family:'IRANSans','YekanBakh',sans-serif;
+  box-shadow:0 1px 0 rgba(16,185,129,0.06) inset;
+  transition:border-color .15s, box-shadow .15s;
+}
+.pdt-time-split:hover{border-color:#059669}
+.pdt-time-split:focus-within{
+  border-color:#059669;
+  box-shadow:0 0 0 3px rgba(16,185,129,0.22);
 }
 .pdt-time-cell{
+  flex:1;min-width:0;
   border:0;background:transparent;
-  padding:0 18px 0 8px;                  /* extra right pad for the chevron */
-  font-family:inherit;
-  font-size:14pt;font-weight:900;
-  text-align:center;min-width:58px;
+  padding:8px 26px 8px 8px;
+  font-family:'IRANSans','YekanBakhFaNum',sans-serif;
+  font-size:18px;font-weight:900;
+  text-align:center;
   cursor:pointer;color:#065F46;
   appearance:none;-webkit-appearance:none;
   letter-spacing:0.5px;
-  background-image:
-    linear-gradient(45deg, transparent 50%, #059669 50%),
-    linear-gradient(135deg, #059669 50%, transparent 50%);
-  background-position:calc(100% - 10px) 50%, calc(100% - 6px) 50%;
-  background-size:4px 4px, 4px 4px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23059669' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat:no-repeat;
+  background-position:left 8px center;
+  transition:background-color .12s;
 }
-.pdt-time-cell:hover{background-color:rgba(16,185,129,0.10)}
-.pdt-time-cell:focus{outline:none;background-color:rgba(16,185,129,0.18)}
+.pdt-time-cell:hover{background-color:rgba(16,185,129,0.08)}
+.pdt-time-cell:focus{outline:none;background-color:rgba(16,185,129,0.14)}
 .pdt-time-sep{
   display:inline-flex;align-items:center;justify-content:center;
-  padding:0 4px;font-weight:900;color:#059669;font-size:16pt;
+  padding:0 6px;font-weight:900;color:#059669;font-size:20px;
   user-select:none;
-  background:rgba(16,185,129,0.06);
+  background:rgba(16,185,129,0.08);
 }
-/* Dark mode for the split-time pill — match the .pdt-part dark scheme. */
-.dark .pdt-time-split{
-  background:linear-gradient(135deg, rgba(16,185,129,0.18), rgba(13,148,136,0.12)) !important;
+
+/* ─── Dark mode ─────────────────────────────────────────────────────── */
+.dark .pdt-part{
+  background:#0F172A !important;
+  color:#F1F5F9 !important;
   border-color:rgba(16,185,129,0.55) !important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2334D399' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
 }
-.dark .pdt-time-cell{color:#A7F3D0 !important;background-image:
-    linear-gradient(45deg, transparent 50%, #34D399 50%),
-    linear-gradient(135deg, #34D399 50%, transparent 50%) !important;}
-.dark .pdt-time-cell:hover{background-color:rgba(52,211,153,0.18)}
-.dark .pdt-time-cell:focus{background-color:rgba(52,211,153,0.28)}
-.dark .pdt-time-sep{color:#34D399;background:rgba(52,211,153,0.10)}
+.dark .pdt-part:hover, .dark .pdt-part:focus{border-color:#34D399 !important}
+.dark .pdt-part option{background:#0F172A;color:#F1F5F9}
+
+.dark .pdt-time-split{
+  background:#0F172A !important;
+  border-color:rgba(52,211,153,0.55) !important;
+}
+.dark .pdt-time-split:hover, .dark .pdt-time-split:focus-within{
+  border-color:#34D399 !important;
+}
+.dark .pdt-time-cell{
+  color:#A7F3D0 !important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2334D399' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+}
+.dark .pdt-time-cell:hover{background-color:rgba(52,211,153,0.16) !important}
+.dark .pdt-time-cell:focus{background-color:rgba(52,211,153,0.24) !important}
+.dark .pdt-time-cell option{background:#0F172A;color:#A7F3D0}
+.dark .pdt-time-sep{color:#34D399 !important;background:rgba(52,211,153,0.12) !important}
+
+/* ─── Mobile — let the date row wrap to 3 columns and put the time pill
+       on its own full-width row so the digits stay readable. ───────── */
+@media (max-width: 480px){
+  .pdt-wrap{gap:5px}
+  .pdt-part{
+    flex:1 1 calc(33.333% - 6px);
+    min-height:48px;font-size:13.5px;
+    padding-right:26px;padding-left:8px;
+  }
+  .pdt-time-split{
+    flex:1 1 100%;min-height:52px;
+    justify-content:center;
+  }
+  .pdt-time-cell{
+    font-size:20px;padding:8px 30px 8px 12px;
+  }
+  .pdt-time-sep{font-size:22px;padding:0 8px}
+}
 
 /* Dark mode — keep the same structure, just invert chrome for legibility. */
 .dark .pdt-part, .dark .pdt-time, .dark .pdt-time-split{
