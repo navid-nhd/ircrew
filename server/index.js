@@ -198,13 +198,13 @@ function classifyFlt(fltNo) {
   const f = norm(fltNo);
   if (!f) return { status: 'OTHER', code: '', label: '' };
   const upper = f.toUpperCase();
-  // RST = post-flight or general "rest day" — distinct from OFF (scheduled
-  // day-off). Must come BEFORE the OFF check because the old regex catches
-  // anything starting with "REST".
-  if (/^RST\b/.test(upper)) return { status: 'RST', code: 'RST', label: f || 'Rest' };
-  // OFC = Office Duty for crew working at HQ that day.
-  if (/^(OFC|OFFICE)\b/.test(upper)) return { status: 'OFC', code: 'OFC', label: f || 'Office Duty' };
-  if (/^(OFF|DO\b|REST)/.test(upper)) return { status: 'OFF',   code: 'OFF', label: f || 'Off day' };
+  // RST / REST = rest day (post-flight or general). Match anywhere as a
+  // word, since some rosters print "REST" in Status while FltNo is blank.
+  // Must precede the OFF check so "REST" doesn't get swallowed as OFF.
+  if (/\b(RST|REST)\b/.test(upper)) return { status: 'RST', code: 'RST', label: f || 'Rest' };
+  // OFC / OFFICE = office duty at HQ. Same word-boundary match.
+  if (/\b(OFC|OFFICE)\b/.test(upper)) return { status: 'OFC', code: 'OFC', label: f || 'Office Duty' };
+  if (/^(OFF|DO\b)/.test(upper)) return { status: 'OFF',   code: 'OFF', label: f || 'Off day' };
   if (/^(RSV|STBY|RES\b)/.test(upper)) return { status: 'RSV',   code: 'RSV', label: f || 'Reserve' };
   if (/^(REC|RC\b|TRN|TRG|TRAIN|GS\b|SIM|CRM|OPC|LPC|EME|GROUND)/.test(upper))
                                        return { status: 'TRAIN', code: upper.split(/\s+/)[0], label: f };
@@ -258,7 +258,18 @@ function parseRoster(html) {
 
     const row = {};
     headers.forEach((h, i) => { row[h] = tds[i] ?? ''; });
-    const cls = classifyFlt(row.FltNo);
+    // FltNo is the canonical signal but rosters sometimes leave it blank for
+    // non-operational rows (OFC, RST, etc.) and put the duty code in Status
+    // or Action instead. Fall back to those if FltNo classification is OTHER.
+    let cls = classifyFlt(row.FltNo);
+    if (cls.status === 'OTHER' || !cls.status) {
+      const alt = classifyFlt(row.Status) ;
+      if (alt.status && alt.status !== 'OTHER') cls = alt;
+    }
+    if (cls.status === 'OTHER' || !cls.status) {
+      const alt = classifyFlt(row.Action);
+      if (alt.status && alt.status !== 'OTHER') cls = alt;
+    }
     rows.push({
       status: row.Status,
       action: row.Action,

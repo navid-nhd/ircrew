@@ -154,12 +154,12 @@ function classifyFlt(fltNo: string): { kind: DutyKind; code: string; label: stri
   const f = norm(fltNo);
   if (!f) return { kind: 'OTHER', code: '', label: '' };
   const upper = f.toUpperCase();
-  // RST = post-flight or general "rest day". Must precede the OFF check
-  // because the old regex catches anything starting with "REST".
-  if (/^RST\b/.test(upper)) return { kind: 'RST', code: 'RST', label: f || 'Rest' };
-  // OFC = Office Duty (crew working at HQ that day).
-  if (/^(OFC|OFFICE)\b/.test(upper)) return { kind: 'OFC', code: 'OFC', label: f || 'Office Duty' };
-  if (/^(OFF|DO\b|REST)/.test(upper)) return { kind: 'OFF',    code: 'OFF', label: f || 'Off day' };
+  // RST / REST: match as a word anywhere — the FltNo may be blank with
+  // the code living in the Status column instead. Must precede OFF.
+  if (/\b(RST|REST)\b/.test(upper)) return { kind: 'RST', code: 'RST', label: f || 'Rest' };
+  // OFC / OFFICE: same word-boundary detection.
+  if (/\b(OFC|OFFICE)\b/.test(upper)) return { kind: 'OFC', code: 'OFC', label: f || 'Office Duty' };
+  if (/^(OFF|DO\b)/.test(upper)) return { kind: 'OFF',    code: 'OFF', label: f || 'Off day' };
   if (/^(RSV|STBY|RES\b)/.test(upper)) return { kind: 'RSV',    code: 'RSV', label: f || 'Reserve' };
   if (/^(REC|RC\b|TRN|TRG|TRAIN|GS\b|SIM|CRM|OPC|LPC|EME|GROUND)/.test(upper))
                                        return { kind: 'TRAIN',  code: upper.split(/\s+/)[0], label: f };
@@ -217,7 +217,17 @@ function parseRoster(html: string): { rangeLabel: string; rows: RosterRow[] } {
     if (tds.length < headers.length) return;
     const row: Record<string, string> = {};
     headers.forEach((h, i) => { row[h] = tds[i] ?? ''; });
-    const cls = classifyFlt(row.FltNo);
+    // FltNo first; if it doesn't classify (often blank for OFC/RST rows),
+    // try Status, then Action. Mirrors server/index.js parseRoster.
+    let cls = classifyFlt(row.FltNo);
+    if (cls.kind === 'OTHER' || !cls.kind) {
+      const alt = classifyFlt(row.Status);
+      if (alt.kind && alt.kind !== 'OTHER') cls = alt;
+    }
+    if (cls.kind === 'OTHER' || !cls.kind) {
+      const alt = classifyFlt(row.Action);
+      if (alt.kind && alt.kind !== 'OTHER') cls = alt;
+    }
     rows.push({
       status:   row.Status,
       action:   row.Action,
