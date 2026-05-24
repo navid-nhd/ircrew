@@ -72,14 +72,14 @@ const KIND = {
     glow: 'shadow-[0_8px_28px_-10px_rgba(59,130,246,0.30)]',
   },
   RST: {
-    // Compulsory rest period — saturated indigo → purple so it reads as
-    // "deep sleep" and is unmistakeably different from OFF (amber) and
-    // LAYOVER (teal).
-    accent: 'from-indigo-500 to-purple-700',
-    pill: 'bg-gradient-to-br from-indigo-200 to-purple-300 text-indigo-900 dark:from-indigo-900/55 dark:to-purple-900/40 dark:text-indigo-100',
+    // Compulsory rest period — DARK "night-sky" indigo→purple with white
+    // text. Saturated + dark makes it instantly distinct from RSV
+    // (pastel violet) which it used to look identical to.
+    accent: 'from-indigo-600 to-purple-800',
+    pill: 'bg-gradient-to-br from-indigo-700 to-purple-800 text-white ring-1 ring-indigo-400/40',
     icon: Moon, label: 'استراحت (RST)',
-    cell: 'bg-gradient-to-br from-indigo-100 to-purple-200 dark:from-indigo-950/55 dark:to-purple-900/35 ring-1 ring-indigo-400/50 dark:ring-indigo-700/40',
-    glow: 'shadow-[0_8px_28px_-10px_rgba(99,102,241,0.30)]',
+    cell: 'bg-gradient-to-br from-indigo-700 via-indigo-800 to-purple-900 text-white ring-1 ring-indigo-400/40 dark:ring-indigo-500/50',
+    glow: 'shadow-[0_10px_30px_-10px_rgba(67,56,202,0.45)]',
   },
   TRAIN: {
     accent: 'from-sky-400 to-blue-600',

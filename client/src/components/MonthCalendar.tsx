@@ -182,11 +182,10 @@ const CELL_STYLES: Record<Exclude<Kind, 'NONE'>, CellStyle> = {
     Icon: Building2, label: 'OFC',
   },
   RST: {
-    // Bolder indigo-to-purple "deep sleep" tone — unmistakable vs OFF
-    // (amber) and LAYOVER (teal).
-    bg: 'bg-gradient-to-br from-indigo-200 to-purple-300 dark:from-indigo-900/60 dark:to-purple-900/45 ring-1 ring-indigo-400/50 dark:ring-indigo-600/45',
-    text: 'text-indigo-900 dark:text-indigo-100',
-    iconColor: 'text-indigo-700 dark:text-indigo-200',
+    // Deep "night-sky" indigo→purple with white text — same visual
+    // weight as FLIGHT/DEADHEAD so RST never blends in with RSV again.
+    bg: 'bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-900 text-white shadow-lg shadow-indigo-900/30 ring-1 ring-indigo-400/40',
+    text: '', iconColor: '',
     Icon: Moon, label: 'RST',
   },
   TRAIN: {
@@ -333,7 +332,7 @@ function Legend() {
     { color: 'bg-emerald-500', label: 'پرواز' },
     { color: 'bg-violet-500',  label: 'D/H'   },
     { color: 'bg-teal-500',    label: 'L/O'   },
-    { color: 'bg-indigo-600',  label: 'RST'   },
+    { color: 'bg-indigo-700',  label: 'RST'   },
     { color: 'bg-blue-600',    label: 'OFC'   },
     { color: 'bg-sky-500',     label: 'دوره'  },
     { color: 'bg-rose-500',    label: 'پزشکی' },
