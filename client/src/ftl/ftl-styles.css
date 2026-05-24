@@ -639,62 +639,28 @@ html.dark, .dark{
   display:inline-block;
 }
 
-/* ─── Persian date+time picker — light/dark, 24h, midnight reachable ─── */
-.pdt-wrap{
-  display:flex;gap:6px;align-items:stretch;flex-wrap:wrap;
-  direction:rtl;
-}
-.pdt-part{
-  flex:1;min-width:68px;
-  min-height:44px;                      /* iOS-friendly touch target */
-  padding:8px 10px;
-  border:1px solid #94A3B8;
-  border-radius:10px;
-  background:#FFFFFF;
-  color:#0F172A;
-  font-size:13pt;font-weight:800;
+/* ─── Persian date+time wrapper (3 selects + native time input) ───────── */
+.pdt-wrap{display:flex;gap:5px;align-items:stretch;flex-wrap:wrap}
+.pdt-part,.pdt-time{
+  padding:8px 8px;border:1px solid var(--line);border-radius:6px;
+  background:#fff;font-size:11pt;
   font-family:'YekanBakhFaNum','IRANSans',sans-serif;
   text-align:center;
-  appearance:none;-webkit-appearance:none;
-  cursor:pointer;
-  background-image:linear-gradient(45deg,transparent 50%,#059669 50%),
-                   linear-gradient(135deg,#059669 50%,transparent 50%);
-  background-position:calc(100% - 14px) 50%, calc(100% - 8px) 50%;
-  background-size:6px 6px, 6px 6px;
-  background-repeat:no-repeat;
-  padding-left:28px;
 }
+.pdt-part{flex:1;min-width:60px}
 .pdt-month{flex:1.6}
-.pdt-part:focus{
-  outline:none;border-color:#059669;
-  box-shadow:0 0 0 3px rgba(16,185,129,.20);
+.pdt-time{flex:0 0 auto;width:96px;direction:ltr}
+.pdt-part:focus,.pdt-time:focus{
+  outline:none;border-color:var(--brand-2);
+  box-shadow:0 0 0 3px rgba(21,99,154,.1);
 }
-/* The time block is a separate inline-flex row so the HH : MM pair stays
-   visually together even when the four date selects wrap to a new line. */
-.pdt-time-group{
-  display:inline-flex;align-items:stretch;gap:4px;
-  direction:ltr;
-}
-.pdt-hh, .pdt-mm{flex:0 0 auto;min-width:72px;padding-left:24px;background-position:calc(100% - 12px) 50%, calc(100% - 6px) 50%;}
-.pdt-sep{
-  display:inline-flex;align-items:center;justify-content:center;
-  font-size:18pt;font-weight:900;color:#059669;padding:0 2px;
-  font-family:'YekanBakhFaNum',monospace;
-}
-
-/* Dark mode — invert select chrome so the text is readable. */
-.dark .pdt-part{
+/* Dark mode — keep the same structure, just invert chrome for legibility. */
+.dark .pdt-part, .dark .pdt-time{
   background:#0F172A !important;
   color:#F1F5F9 !important;
-  border-color:#10B981 !important;
-  background-image:linear-gradient(45deg,transparent 50%,#34D399 50%),
-                   linear-gradient(135deg,#34D399 50%,transparent 50%) !important;
-}
-.dark .pdt-part:focus{
-  box-shadow:0 0 0 3px rgba(52,211,153,.30) !important;
+  border-color:rgba(16,185,129,0.50) !important;
 }
 .dark .pdt-part option{background:#0F172A;color:#F1F5F9}
-.dark .pdt-sep{color:#34D399}
 
 /* â”€â”€â”€ Persian date picker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .rmdp-input-fa{
