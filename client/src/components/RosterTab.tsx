@@ -19,6 +19,7 @@ import { RosterAuditCard } from './RosterAuditCard';
 import { TodaysBriefing } from './TodaysBriefing';
 import { RosterChangeBanner } from './RosterChangeBanner';
 import { recordChanges } from '../lib/rosterChangeNotifier';
+import { publishBgContext, notifyChangeFromForeground } from '../lib/notifyBridge';
 
 interface Props {
   creds: Credentials;
@@ -91,7 +92,17 @@ export function RosterTab({ creds, onPositionLearned }: Props) {
           setAudit(auditResult);
           if (auditResult.changes.length > 0) {
             const recorded = recordChanges(creds.code, period, auditResult.changes);
-            if (recorded) setBannerBump((b) => b + 1);
+            if (recorded) {
+              setBannerBump((b) => b + 1);
+              // Fire a NATIVE notification too — pops in the phone status
+              // bar even if the user is busy in another tab of the app.
+              void notifyChangeFromForeground(auditResult.changes.length);
+            }
+          }
+          // Keep the background runner's KV in sync with what the user is
+          // currently looking at, so the hourly poll watches the same period.
+          if (!creds.offline && creds.code !== 'DEMO') {
+            void publishBgContext({ code: creds.code, pass: creds.pass, period });
           }
         }
       } catch (e) {

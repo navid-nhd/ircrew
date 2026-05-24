@@ -120,6 +120,57 @@ function buildAdjEntry(
 const findAdj = (history: DutyEntry[], candidateIdx: number, kind: AdjKind, position: 'before' | 'after') =>
   history.find((h) => h.id === adjId(candidateIdx, kind, position));
 
+interface Legality {
+  legal: boolean;
+  shortHours?: number;          // how many hours short of the required rest
+  earliestLegalIso?: string;    // when the standby could LEGALLY start
+  prevDutyEndIso?: string;
+  requiredRestHours?: number;
+  reason?: string;
+}
+
+/** Determine whether a proposed adjacency (with its computed natural start
+ *  time) respects the required Rest after the most recent prior duty in
+ *  history. Implements OM-A 7.1.4.13 in a simplified form:
+ *    • Rest start offset: +1h at THR/BND, +2h at IKA, 0 elsewhere
+ *    • Required Rest = max(baseRequired, previous duty duration)
+ *    • baseRequired = 12h at Home Base, 10h away
+ *  Day-off doesn't count — only standby/positioning/training/admin entries
+ *  count as "the next duty" for rest-after purposes. */
+function checkLegality(
+  history: DutyEntry[],
+  proposedStartIso: string,
+  isHomeBase: boolean,
+  thisAdjId: string,
+): Legality {
+  const lastDuty = [...history]
+    .filter((h) =>
+      h.id !== thisAdjId &&
+      ['fdp', 'positioning', 'training', 'admin', 'airport_sb'].includes(h.kind),
+    )
+    .sort((a, b) => new Date(b.end).getTime() - new Date(a.end).getTime())[0];
+  if (!lastDuty) return { legal: true };
+
+  const prevDur = (new Date(lastDuty.end).getTime() - new Date(lastDuty.start).getTime()) / 3_600_000;
+  const baseRequired = isHomeBase ? 12 : 10;
+  const required = Math.max(baseRequired, prevDur);
+  const offsetH = lastDuty.endStation === 'home' ? (lastDuty.endsAtIKA ? 2 : 1) : 0;
+  const earliestLegalMs = new Date(lastDuty.end).getTime() + (offsetH + required) * 3_600_000;
+  const startMs = new Date(proposedStartIso).getTime();
+
+  if (startMs >= earliestLegalMs) {
+    return { legal: true, earliestLegalIso: new Date(earliestLegalMs).toISOString(), requiredRestHours: required, prevDutyEndIso: lastDuty.end };
+  }
+  return {
+    legal: false,
+    shortHours: (earliestLegalMs - startMs) / 3_600_000,
+    earliestLegalIso: new Date(earliestLegalMs).toISOString(),
+    prevDutyEndIso: lastDuty.end,
+    requiredRestHours: required,
+    reason: `Rest قانونی پس از Duty قبلی هنوز کامل نشده`,
+  };
+}
+
 const STANDBY_KINDS: AdjKind[] = ['sba', 'sbb', 'sbf'];
 const isStandby = (k: AdjKind): boolean => STANDBY_KINDS.includes(k);
 
@@ -235,6 +286,26 @@ export function AdjacentDuties({
     sbb:     !!findAdj(history, activeIndex, 'sbb', 'before'),
     sbf:     !!findAdj(history, activeIndex, 'sbf', 'before'),
   };
+
+  // Compute legality for each "before" standby option. Excludes day-off
+  // (day-off IS rest, so it can't violate rest-after). Excludes "after"
+  // options (the engine doesn't apply rest-after-then-standby checks).
+  const isHomeBase = candidate.departureStation === 'home';
+  const beforeLegality = useMemo(() => {
+    const out: Record<'sba' | 'sbb' | 'sbf', Legality> = {
+      sba: { legal: true }, sbb: { legal: true }, sbf: { legal: true },
+    };
+    for (const k of ['sba', 'sbb', 'sbf'] as const) {
+      const sb = computeStandby(k, candidate.reportingTimeLocal);
+      out[k] = checkLegality(history, sb.sbStartIso, isHomeBase, adjId(activeIndex, k, 'before'));
+    }
+    return out;
+  }, [history, candidate.reportingTimeLocal, isHomeBase, activeIndex]);
+
+  // If the currently-selected "before" standby is illegal, surface that
+  // prominently above the chip grid.
+  const activeIllegalBefore = (['sba', 'sbb', 'sbf'] as const)
+    .find((k) => beforeActive[k] && !beforeLegality[k].legal);
   const afterActive = {
     day_off: !!findAdj(history, activeIndex, 'day_off', 'after'),
     sbf:     !!findAdj(history, activeIndex, 'sbf', 'after'),
@@ -266,11 +337,22 @@ export function AdjacentDuties({
 
         {/* Step 1 — before */}
         <StepHeader n="۱" title="قبل از پرواز چه چیزی داشتی؟" hint="اختیاری — یک گزینه" />
+
+        {/* If the user picked an illegal option, lead with a clear red
+            warning that explains why and what the legal alternative is. */}
+        {activeIllegalBefore && (
+          <IllegalWarning
+            kind={activeIllegalBefore}
+            legality={beforeLegality[activeIllegalBefore]}
+            onClear={() => toggle(activeIllegalBefore, 'before')}
+          />
+        )}
+
         <div className="grid grid-cols-2 gap-1.5 mb-3">
           <Chip kind="day_off" on={beforeActive.day_off} onClick={() => toggle('day_off', 'before')} />
-          <Chip kind="sbf"     on={beforeActive.sbf}     onClick={() => toggle('sbf',     'before')} />
-          <Chip kind="sba"     on={beforeActive.sba}     onClick={() => toggle('sba',     'before')} />
-          <Chip kind="sbb"     on={beforeActive.sbb}     onClick={() => toggle('sbb',     'before')} />
+          <Chip kind="sbf"     on={beforeActive.sbf}     onClick={() => toggle('sbf',     'before')} legality={beforeLegality.sbf} />
+          <Chip kind="sba"     on={beforeActive.sba}     onClick={() => toggle('sba',     'before')} legality={beforeLegality.sba} />
+          <Chip kind="sbb"     on={beforeActive.sbb}     onClick={() => toggle('sbb',     'before')} legality={beforeLegality.sbb} />
         </div>
 
         <div className="h-px bg-slate-100 dark:bg-slate-800 my-3" />
@@ -351,17 +433,24 @@ function StepHeader({ n, title, hint }: { n: string; title: string; hint: string
   );
 }
 
-function Chip({ kind, on, onClick }: { kind: AdjKind; on: boolean; onClick: () => void }) {
+function Chip({ kind, on, onClick, legality }: {
+  kind: AdjKind; on: boolean; onClick: () => void;
+  legality?: Legality;
+}) {
   const meta = ADJ_META[kind];
   const Icon = meta.icon;
+  const illegal = legality && !legality.legal;
   return (
     <button
       onClick={onClick}
+      title={illegal ? legality?.reason ?? '' : undefined}
       className={cn(
-        'flex items-center gap-1.5 px-2.5 h-11 rounded-xl text-[11.5px] font-extrabold ring-1 transition-all active:scale-95',
+        'flex items-center gap-1.5 px-2.5 h-11 rounded-xl text-[11.5px] font-extrabold ring-1 transition-all active:scale-95 relative',
         on
           ? `text-white bg-gradient-to-br ${meta.tint} shadow-md ring-white/20`
-          : 'bg-white/70 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 ring-slate-200 dark:ring-slate-700 hover:ring-brand-500/40',
+          : illegal
+            ? 'bg-white/70 dark:bg-slate-800/40 text-rose-700 dark:text-rose-300 ring-rose-300/60 dark:ring-rose-700/50 hover:ring-rose-500/70'
+            : 'bg-white/70 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 ring-slate-200 dark:ring-slate-700 hover:ring-brand-500/40',
       )}
     >
       {on ? <X className="w-3 h-3" strokeWidth={2.6} /> : <Plus className="w-3 h-3" strokeWidth={2.6} />}
@@ -370,7 +459,48 @@ function Chip({ kind, on, onClick }: { kind: AdjKind; on: boolean; onClick: () =
         <div className="leading-none truncate">{meta.fa}</div>
         <div className={cn('text-[9.5px] leading-none mt-0.5', on ? 'opacity-85' : 'opacity-60')}>{meta.sub}</div>
       </div>
+      {illegal && !on && (
+        <span className="absolute -top-1.5 -right-1.5 grid place-items-center w-5 h-5 rounded-full bg-rose-600 text-white text-[10px] font-extrabold ring-2 ring-white dark:ring-slate-900 shadow-md">
+          !
+        </span>
+      )}
     </button>
+  );
+}
+
+function IllegalWarning({ kind, legality, onClear }: {
+  kind: AdjKind;
+  legality: Legality;
+  onClear: () => void;
+}) {
+  const meta = ADJ_META[kind];
+  return (
+    <div className="rounded-xl bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-300 dark:ring-rose-700/50 p-3 mb-3 text-[11.5px] leading-relaxed text-rose-900 dark:text-rose-100" dir="rtl">
+      <div className="flex items-start gap-2 mb-1.5">
+        <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-rose-600 dark:text-rose-400" strokeWidth={2.6} />
+        <div className="flex-1 min-w-0">
+          <div className="font-extrabold mb-0.5">گزینهٔ <b>{meta.fa}</b> برای این پرواز قانونی نیست</div>
+          <div className="text-[11px] opacity-90">
+            {legality.reason}. این Standby <b className="tabular-nums">{(legality.shortHours ?? 0).toFixed(1)}h</b> زودتر از پایان Rest قانونی شروع می‌شود.
+          </div>
+          {legality.prevDutyEndIso && (
+            <div className="text-[10.5px] opacity-80 mt-1.5 tabular-nums" dir="ltr">
+              prev duty end: {new Date(legality.prevDutyEndIso).toLocaleString('fa-IR', { dateStyle:'short', timeStyle:'short' })} · rest ≥ {(legality.requiredRestHours ?? 0).toFixed(1)}h →{' '}
+              earliest legal start: {new Date(legality.earliestLegalIso!).toLocaleString('fa-IR', { dateStyle:'short', timeStyle:'short' })}
+            </div>
+          )}
+          <div className="text-[11px] mt-2">
+            راه‌حل: یا <b>تعطیل</b> را قبل از پرواز انتخاب کن، یا <b>SBF شناور</b> با شروع پس از این زمان (در پنل پایین).
+          </div>
+        </div>
+      </div>
+      <button
+        onClick={onClear}
+        className="w-full mt-1 h-9 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-[11.5px] active:scale-[0.98] transition-transform"
+      >
+        حذف این انتخاب
+      </button>
+    </div>
   );
 }
 

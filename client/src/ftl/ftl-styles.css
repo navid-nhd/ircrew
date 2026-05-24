@@ -10,6 +10,11 @@
 .ftl-scope, .ftl-scope *, .ftl-scope *:before, .ftl-scope *:after { box-sizing:border-box; }
 /* The FTL form controls always sit on white card backgrounds, so they need
    explicit dark text regardless of the surrounding light/dark theme. */
+/* ────────────────────────────────────────────────────────────────────────
+   FTL CONTRAST — ground-truth colors. !important is used deliberately so
+   later cascade rules (from ftl-checker's original CSS that lives further
+   down this file) can never wash out the input/label/help text.
+   ──────────────────────────────────────────────────────────────────────── */
 .ftl-scope .card,
 .ftl-scope .help,
 .ftl-scope .toolbar,
@@ -19,29 +24,60 @@
 .ftl-scope .field select,
 .ftl-scope .field textarea,
 .ftl-scope .tabs,
-.ftl-scope .tab { color:#0d1b2a; }
+.ftl-scope .tab { color:#0F172A !important; }
 
-/* Dark-mode contrast for form widgets — without these the labels go light
-   because they inherit the body color, and inputs keep their white
-   background, making the page hard to read in dark mode. */
-.dark .ftl-scope .field label { color:#cbd5e1; font-weight:700; }
+/* Inputs: ALWAYS solid white background + slate-900 text in light, slate-800
+   background + slate-100 text in dark. Never translucent — text must read. */
+.ftl-scope .field input,
+.ftl-scope .field select,
+.ftl-scope .field textarea {
+  background:#ffffff !important;
+  color:#0F172A !important;
+  border-color:#94A3B8 !important;
+  font-weight:700 !important;
+  -webkit-text-fill-color:#0F172A !important;  /* safari + WKWebView fix */
+}
+.ftl-scope .field input::placeholder,
+.ftl-scope .field textarea::placeholder {
+  color:#64748B !important;
+  opacity:1;
+}
+.ftl-scope .field label { color:#0F172A !important; font-weight:800 !important; }
+.ftl-scope .help { color:#0F3A2C !important; }
+.ftl-scope .help b { color:#065F46 !important; }
+.ftl-scope .card h2 { color:#065F46 !important; }
+.ftl-scope .card h3 { color:#0F172A !important; }
+
+/* Dark mode — same rule, opposite colors. */
+.dark .ftl-scope .card,
+.dark .ftl-scope .help,
+.dark .ftl-scope .toolbar,
+.dark .ftl-scope .field,
+.dark .ftl-scope .field label,
+.dark .ftl-scope .tabs,
+.dark .ftl-scope .tab { color:#F1F5F9 !important; }
+.dark .ftl-scope .field label { color:#E2E8F0 !important; font-weight:800 !important; }
 .dark .ftl-scope .field input,
 .dark .ftl-scope .field select,
 .dark .ftl-scope .field textarea {
-  color:#f1f5f9;
-  background:rgba(30,41,59,0.75);
-  border-color:rgba(148,163,184,0.30);
+  background:#1E293B !important;
+  color:#F1F5F9 !important;
+  border-color:#475569 !important;
+  -webkit-text-fill-color:#F1F5F9 !important;
 }
 .dark .ftl-scope .field input::placeholder,
-.dark .ftl-scope .field textarea::placeholder { color:#94a3b8; }
-.dark .ftl-scope .help {
-  background:rgba(16,185,129,0.18);
-  border-color:rgba(16,185,129,0.40);
-  color:#e2e8f0;
+.dark .ftl-scope .field textarea::placeholder {
+  color:#94A3B8 !important;
+  opacity:1;
 }
-.dark .ftl-scope .help b { color:#a7f3d0; }
-.dark .ftl-scope .card h2,
-.dark .ftl-scope .card h3 { color:#e2e8f0; }
+.dark .ftl-scope .help {
+  background:rgba(16,185,129,0.18) !important;
+  border-color:rgba(16,185,129,0.40) !important;
+  color:#ECFDF5 !important;
+}
+.dark .ftl-scope .help b { color:#A7F3D0 !important; }
+.dark .ftl-scope .card h2 { color:#A7F3D0 !important; }
+.dark .ftl-scope .card h3 { color:#E2E8F0 !important; }
 
 /* Forbid any FTL component from creating horizontal scroll. */
 .ftl-scope, .ftl-scope * { max-width:100%; }

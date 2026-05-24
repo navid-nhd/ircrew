@@ -11,6 +11,7 @@ import { StatsTab } from './components/StatsTab';
 import { ActivationScreen } from './components/ActivationScreen';
 import { activationStore } from './lib/activation';
 import { resetUpstreamSession } from './lib/upstreamClient';
+import { ensureNotificationsReady, publishBgContext, clearBgContext } from './lib/notifyBridge';
 import { honorificFromPosition } from './lib/positions';
 import { profileStore } from './lib/profile';
 
@@ -40,6 +41,21 @@ export function App() {
     if (creds) localStorage.setItem(STORE_KEY, JSON.stringify(creds));
   }, [creds]);
 
+  // Notification permission + Android channel — only the FIRST launch
+  // prompts; subsequent launches are no-ops.
+  useEffect(() => { void ensureNotificationsReady(); }, []);
+
+  // Push real creds into the background runner's KV when the user logs in
+  // with online creds. DEMO / OFFLINE are skipped (no real upstream to poll).
+  useEffect(() => {
+    if (!creds || creds.offline || creds.code === 'DEMO') {
+      void clearBgContext();
+      return;
+    }
+    // period is published from RosterTab once the user picks one.
+    void publishBgContext({ code: creds.code, pass: creds.pass, period: '' });
+  }, [creds]);
+
   useEffect(() => {
     if (!creds) { setPosition(''); return; }
     setPosition(profileStore.load(creds.code)?.position ?? '');
@@ -48,6 +64,7 @@ export function App() {
   const onLogout = () => {
     localStorage.removeItem(STORE_KEY);
     resetUpstreamSession();   // dump the in-memory native session cache too
+    void clearBgContext();    // stop background polling for this code
     setCreds(null);
     setTab('roster');
   };
