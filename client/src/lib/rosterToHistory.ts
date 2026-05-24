@@ -46,9 +46,11 @@ const ROSTER_TO_DUTY: Partial<Record<RosterRow['kind'], DutyKind>> = {
   FLIGHT:   'fdp',
   DEADHEAD: 'positioning',  // Crew flies as passenger — counts as duty, not FDP block time
   LAYOVER:  'rest',         // Mid-mission off day at outstation — NOT a HB day-off
-  OFF:      'day_off',
+  OFF:      'day_off',      // Home Base day-off — counts toward 7-per-month rule
+  RST:      'day_off',      // Compulsory rest day — also counts toward the cumulative quota
   RSV:      'reserve',      // Reserve roster slot; the engine treats this differently from SBF
   TRAIN:    'training',
+  OFC:      'admin',        // Office duty counts as administrative duty time
   MED:      'admin',
   PASS:     'admin',
   MEET:     'admin',

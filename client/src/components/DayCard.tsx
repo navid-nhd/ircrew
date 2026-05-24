@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   Plane, BedDouble, ShieldAlert, MapPin, ChevronDown, Loader2, Users, AlertTriangle,
   GraduationCap, Stethoscope, BookUser, Users2, Ban, Briefcase, Archive, Info, Armchair, Palmtree,
+  Building2, Moon,
 } from 'lucide-react';
 import type { Credentials, RosterRow, CrewResponse } from '../lib/types';
 import { parseDepArrCell, weekdayFa, jalaliShort, toFaDigits, cn } from '../lib/utils';
@@ -59,6 +60,25 @@ const KIND = {
     pill: 'bg-gradient-to-br from-teal-100 to-cyan-200 text-teal-800 dark:from-teal-950/55 dark:to-cyan-900/40 dark:text-teal-200',
     icon: Palmtree, label: 'لِی‌اُور (L/O)',
     cell: 'bg-gradient-to-br from-teal-100 to-cyan-50 dark:from-teal-950/40 dark:to-cyan-900/20 ring-1 ring-teal-300/40 dark:ring-teal-700/40',
+    glow: '',
+  },
+  OFC: {
+    // Office duty (HQ shifts). Counts as duty but is sedentary — neutral
+    // slate tone with a building icon makes the distinction clear.
+    accent: 'from-slate-400 to-slate-600',
+    pill: 'bg-gradient-to-br from-slate-100 to-slate-200 text-slate-800 dark:from-slate-800/60 dark:to-slate-700/40 dark:text-slate-200',
+    icon: Building2, label: 'دفتری (OFC)',
+    cell: 'bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800/50 dark:to-slate-900/30 ring-1 ring-slate-300/40 dark:ring-slate-700/40',
+    glow: '',
+  },
+  RST: {
+    // Compulsory rest period (post-flight or general rest day). Indigo so
+    // it reads "calm/sleep" without being confused with OFF (amber) or
+    // LAYOVER (teal).
+    accent: 'from-indigo-400 to-blue-600',
+    pill: 'bg-gradient-to-br from-indigo-100 to-blue-200 text-indigo-800 dark:from-indigo-950/55 dark:to-blue-900/40 dark:text-indigo-200',
+    icon: Moon, label: 'استراحت (RST)',
+    cell: 'bg-gradient-to-br from-indigo-100 to-blue-50 dark:from-indigo-950/40 dark:to-blue-900/20 ring-1 ring-indigo-300/40 dark:ring-indigo-700/40',
     glow: '',
   },
   TRAIN: {

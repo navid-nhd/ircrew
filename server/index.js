@@ -198,6 +198,12 @@ function classifyFlt(fltNo) {
   const f = norm(fltNo);
   if (!f) return { status: 'OTHER', code: '', label: '' };
   const upper = f.toUpperCase();
+  // RST = post-flight or general "rest day" — distinct from OFF (scheduled
+  // day-off). Must come BEFORE the OFF check because the old regex catches
+  // anything starting with "REST".
+  if (/^RST\b/.test(upper)) return { status: 'RST', code: 'RST', label: f || 'Rest' };
+  // OFC = Office Duty for crew working at HQ that day.
+  if (/^(OFC|OFFICE)\b/.test(upper)) return { status: 'OFC', code: 'OFC', label: f || 'Office Duty' };
   if (/^(OFF|DO\b|REST)/.test(upper)) return { status: 'OFF',   code: 'OFF', label: f || 'Off day' };
   if (/^(RSV|STBY|RES\b)/.test(upper)) return { status: 'RSV',   code: 'RSV', label: f || 'Reserve' };
   if (/^(REC|RC\b|TRN|TRG|TRAIN|GS\b|SIM|CRM|OPC|LPC|EME|GROUND)/.test(upper))

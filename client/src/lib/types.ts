@@ -7,8 +7,8 @@ export interface Credentials {
 }
 
 export type DutyKind =
-  | 'OFF' | 'RSV' | 'FLIGHT' | 'DEADHEAD' | 'LAYOVER' | 'TRAIN' | 'MED' | 'PASS' | 'MEET'
-  | 'REJECT' | 'GROUND' | 'OTHER';
+  | 'OFF' | 'RST' | 'RSV' | 'FLIGHT' | 'DEADHEAD' | 'LAYOVER'
+  | 'TRAIN' | 'MED' | 'PASS' | 'MEET' | 'REJECT' | 'GROUND' | 'OFC' | 'OTHER';
 
 export interface RosterRow {
   status: string;
