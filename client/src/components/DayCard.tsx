@@ -137,7 +137,12 @@ export function DayCard({ row, isToday, creds }: Props) {
   const arr = parseDepArrCell(row.arrTime);
   const t = KIND[row.kind] ?? KIND.OTHER;
   const Icon = t.icon;
-  const isFlight = row.kind === 'FLIGHT';
+  // Deadheads (incl. POS positioning) are operational rows from the crew's
+  // POV — they have a real route, real flight number, real crew. Treat them
+  // like FLIGHT for display so the route, times, flight number, and the
+  // tap-to-load-crew interaction all work; the violet color/label still
+  // distinguishes them from operating flights.
+  const isFlight = row.kind === 'FLIGHT' || row.kind === 'DEADHEAD';
 
   // Jalali day + month from the cell's embedded "yyyy/mm/dd" jalali string.
   const jalParts = (dep.jalali || '0/0/0').split('/').map(Number);

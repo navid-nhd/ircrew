@@ -59,6 +59,12 @@ export function RosterTab({ creds, onPositionLearned }: Props) {
   useEffect(() => {
     if (!period) return;
     const ctrl = new AbortController();
+    // Clear the previous month's data immediately so the calendar swaps to
+    // the existing skeleton state instead of showing stale rows until the
+    // upstream fetch resolves. Without this the user sees the OLD month
+    // sitting there for the network round-trip → looks frozen / slow.
+    setData(null);
+    setAudit(null);
     (async () => {
       setLoading(true); setErr(null);
       // If the last upstream-fresh fetch for this code is older than 30 min,
@@ -88,16 +94,33 @@ export function RosterTab({ creds, onPositionLearned }: Props) {
           try { localStorage.setItem(lastFreshKey, String(Date.now())); } catch { /* ignore */ }
           const conv = rosterToHistory(r.data.rows);
           vaultEntries(creds.code, conv.entries, period);
-          const auditResult = auditRoster(creds.code, period, r.data);
-          setAudit(auditResult);
-          if (auditResult.changes.length > 0) {
-            const recorded = recordChanges(creds.code, period, auditResult.changes);
-            if (recorded) {
-              setBannerBump((b) => b + 1);
-              // Fire a NATIVE notification too — pops in the phone status
-              // bar even if the user is busy in another tab of the app.
-              void notifyChangeFromForeground(auditResult.changes.length);
+
+          // The auditor must only run for the CURRENT month. Browsing past or
+          // future periods shouldn't trigger the inspector — the user only
+          // cares about changes vs the last snapshot of the live month they
+          // actually fly. When the active period isn't current, clear the
+          // audit so any leftover card from a previous current-month view
+          // doesn't bleed into the historical view.
+          const today = todayIso();
+          const m = period.match(/^(\d{4}-\d{2}-\d{2})\s+till\s+(\d{4}-\d{2}-\d{2})/);
+          const isCurrentMonth = !!m && today >= m[1] && today <= m[2];
+
+          if (isCurrentMonth) {
+            const auditResult = auditRoster(creds.code, period, r.data);
+            setAudit(auditResult);
+            if (auditResult.changes.length > 0) {
+              const recorded = recordChanges(creds.code, period, auditResult.changes);
+              if (recorded) {
+                setBannerBump((b) => b + 1);
+                // Fire a NATIVE notification too — pops in the phone status
+                // bar even if the user is busy in another tab of the app.
+                void notifyChangeFromForeground(auditResult.changes.length);
+              }
             }
+          } else {
+            // Historical / future month — skip audit entirely so the inspector
+            // stays quiet. The vault still gets the data above.
+            setAudit(null);
           }
           // Keep the background runner's KV in sync with what the user is
           // currently looking at, so the hourly poll watches the same period.

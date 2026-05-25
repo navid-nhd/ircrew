@@ -49,7 +49,7 @@ export function Header({ crewCode, honorific, onLogout, offline, onReconnected }
     'shadow-sm transition-all active:scale-95';
 
   return (
-    <header className="pt-safe sticky top-0 z-20 bg-white/95 dark:bg-slate-950/95 border-b border-slate-200/60 dark:border-slate-800/60">
+    <header className="pt-safe sticky top-0 z-20 bg-white dark:bg-slate-950 border-b border-slate-200/60 dark:border-slate-800/60">
       <div className="mx-auto max-w-screen-sm px-3 pt-2.5 pb-2.5 flex items-center gap-2.5">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="relative shrink-0">
